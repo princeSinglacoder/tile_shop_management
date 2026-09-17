@@ -6,3 +6,6 @@ pydantic
 pydantic-settings
 python-dotenv
 python-multipart
+email-validator
+pydantic[email]
+python-jose[cryptography]
