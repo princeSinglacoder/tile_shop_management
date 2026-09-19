@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Orders &amp; Billing - Tile Shop Management</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/sales.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="3" y="13" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="13" width="8" height="8" rx="1.5"></rect>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">TilePro</span>
+          <span class="brand-subtitle">Management</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-menu">
+        <li class="menu-category">Main Menu</li>
+        <li>
+          <a href="dashboard.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="products.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span>Products</span>
+          </a>
+        </li>
+
+        <li class="menu-category">Transactions</li>
+        <li>
+          <a href="sales.html" class="nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span>Sales</span>
+          </a>
+        </li>
+        <li>
+          <a href="purchases.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span>Purchases</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-info-wrapper">
+            <div class="user-avatar" id="sidebarAvatar">A</div>
+            <div class="user-meta">
+              <span class="user-name text-truncate" id="sidebarUserName">Administrator</span>
+              <span class="user-role-badge" id="sidebarUserRole">Admin</span>
+            </div>
+          </div>
+          <button type="button" class="btn-logout" id="logoutBtn" title="Log Out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <header class="header">
+        <div class="header-left">
+          <button type="button" class="btn-toggle-sidebar" aria-label="Toggle navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="page-title-group">
+            <h1 class="page-title">Customer Sales Orders &amp; Billing</h1>
+            <span class="page-subtitle">Process customer sales, record dispatched stock, and track revenue transactions</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button type="button" class="btn btn-primary" id="openCreateSaleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Record Sale</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <!-- Stats Row -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Total Sales Orders</span>
+              <span class="stat-value" id="statTotalSales">0</span>
+              <span class="stat-subtext">Completed sales to date</span>
+            </div>
+            <div class="stat-icon-wrapper blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Total Sales Revenue</span>
+              <span class="stat-value" id="statTotalRevenue">₹ 0.00</span>
+              <span class="stat-subtext">Cumulative billed revenue</span>
+            </div>
+            <div class="stat-icon-wrapper emerald">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Total Products Sold</span>
+              <span class="stat-value" id="statTotalItemsSold">0</span>
+              <span class="stat-subtext">Tile boxes dispatched</span>
+            </div>
+            <div class="stat-icon-wrapper amber">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales History Table Card -->
+        <div class="table-card">
+          <div class="card-header" style="padding: var(--space-5) var(--space-6); margin-bottom: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <h2 class="card-title">Sales History &amp; Orders</h2>
+              <span class="badge badge-neutral" id="salesCount">0 sales</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <input
+                type="text"
+                id="salesSearchInput"
+                class="form-control"
+                placeholder="Filter customer or product..."
+                style="max-width: 250px; font-size: var(--font-size-xs); padding: 0.45rem 0.75rem;"
+                aria-label="Filter sales"
+              >
+              <button type="button" class="btn btn-secondary btn-sm" id="refreshSalesBtn" onclick="Sales.loadSales()" title="Refresh sales">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="padding: var(--space-5) var(--space-6);" id="saleHistoryContainer">
+            <!-- Rendered dynamically by Sales.renderSaleHistory() -->
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- =============================================
+       Modal: Record Customer Sale Modal
+       ============================================= -->
+  <div class="modal-backdrop" id="createSaleModal" role="dialog" aria-modal="true" aria-labelledby="createSaleTitle">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-accent"></div>
+        <h3 class="modal-title" id="createSaleTitle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--primary)">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          Record Customer Sale Order
+        </h3>
+        <button type="button" class="modal-close-btn" data-modal-close aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="saleForm" novalidate>
+        <div class="modal-body">
+          <div class="form-server-error hidden" id="saleServerError" role="alert"></div>
+
+          <!-- Customer & Date -->
+          <div class="modal-grid" style="margin-bottom: var(--space-4);">
+            <div class="form-group">
+              <label for="customerName" class="form-label">
+                Customer Name <span class="required-star">*</span>
+              </label>
+              <input
+                type="text"
+                id="customerName"
+                class="form-control"
+                placeholder="e.g. Rahul Sharma / Apex Developers"
+                maxlength="100"
+                autocomplete="off"
+              >
+              <span class="form-error" id="err_customer"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="saleDate" class="form-label">
+                Sale Date <span class="required-star">*</span>
+              </label>
+              <input
+                type="date"
+                id="saleDate"
+                class="form-control"
+              >
+              <span class="form-error" id="err_sale_date"></span>
+            </div>
+          </div>
+
+          <!-- Line Items Section -->
+          <div style="margin-top: var(--space-2);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 700;">
+                Sale Line Items <span class="required-star">*</span>
+              </label>
+              <span style="font-size: var(--font-size-xs); color: var(--text-muted);">
+                Inventory stock will be deducted automatically
+              </span>
+            </div>
+
+            <div class="sale-items-header">
+              <span>Tile Product</span>
+              <span>Available Stock</span>
+              <span>Qty (Boxes)</span>
+              <span>Selling Price</span>
+              <span>Line Total</span>
+              <span></span>
+            </div>
+
+            <div id="saleItemsContainer">
+              <!-- Dynamic item rows added by Sales.addItemRow() -->
+            </div>
+
+            <button type="button" class="btn-add-row" id="addSaleItemRowBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Another Product
+            </button>
+
+            <!-- Grand Total Bar -->
+            <div class="grand-total-bar">
+              <span class="total-label">Grand Total Sale Amount:</span>
+              <span class="total-value" id="saleGrandTotalValue">₹ 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saleSubmitBtn">
+            <span class="btn-label">Confirm &amp; Record Sale</span>
+            <span class="btn-spinner hidden">
+              <span class="spinner-sm"></span>
+              Recording Sale...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sales.js"></script>
+</body>
+</html>

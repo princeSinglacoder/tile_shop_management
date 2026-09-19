@@ -5,6 +5,7 @@ from app.databases.database import get_db
 from sqlalchemy.orm import Session
 
 from app.models.user import UserDBModel
+from app.utils.jwt import get_current_user
 
 router = APIRouter(
     prefix="/user",
@@ -29,8 +30,22 @@ def login_user(loginUser: UserLogin, response:Response, db: Session = Depends(ge
         key="access_token",
         value=token,
         httponly=True,
-        secure=True,
+        secure=False,    # False for local HTTP development (http://127.0.0.1:8000)
         samesite="lax"
     )
 
     return {"message": "Login successful", "token": token}
+
+@router.get("/me")
+def get_me(current_user: UserDBModel = Depends(get_current_user)):
+    return {"message": "authenticated"}
+
+@router.post("/logout")
+def logout_user(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=False,
+        samesite="lax"
+    )
+    return {"message": "Logged out successfully"}

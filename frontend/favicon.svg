@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="tileGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="tileGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="tileGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e40af" />
+    </linearGradient>
+    <linearGradient id="tileGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+  <!-- Background rounded squircle -->
+  <rect width="32" height="32" rx="7" fill="#0f172a" />
+  
+  <!-- 4-tile grid inside -->
+  <!-- Top Left tile -->
+  <rect x="5.5" y="5.5" width="9.5" height="9.5" rx="2" fill="url(#tileGrad1)" />
+  <!-- Top Right tile -->
+  <rect x="17" y="5.5" width="9.5" height="9.5" rx="2" fill="url(#tileGrad2)" />
+  <!-- Bottom Left tile -->
+  <rect x="5.5" y="17" width="9.5" height="9.5" rx="2" fill="url(#tileGrad3)" />
+  <!-- Bottom Right accent tile -->
+  <rect x="17" y="17" width="9.5" height="9.5" rx="2" fill="url(#tileGrad4)" />
+</svg>

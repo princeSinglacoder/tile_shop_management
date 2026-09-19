@@ -1,0 +1,304 @@
+/* ==========================================================================
+   Products Page — Specific Styles
+   ========================================================================== */
+
+/* ─── Table Row: Product Name Cell ─────────────────────────────────────── */
+.product-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.product-name-text {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  text-transform: capitalize;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Product Row Hover ─────────────────────────────────────────────────── */
+.product-row {
+  transition:
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  position: relative;
+}
+
+.product-row:hover {
+  background-color: #f0f6ff !important;
+}
+
+.product-row:hover td:first-child {
+  border-left: 3px solid var(--primary);
+}
+
+.product-row td:first-child {
+  border-left: 3px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+/* ─── Row Removal Animation ─────────────────────────────────────────────── */
+.row-removing {
+  animation: rowFadeOut 0.3s ease forwards;
+}
+
+@keyframes rowFadeOut {
+  0%   { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(20px); }
+}
+
+/* ─── Skeleton Row ──────────────────────────────────────────────────────── */
+.skeleton-row td {
+  padding: 1.1rem 1.25rem;
+}
+
+/* ─── Tile Size Pill ────────────────────────────────────────────────────── */
+.tile-size-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #f1f5f9;
+  border: 1px solid var(--border-color);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background-color var(--transition-fast);
+}
+
+.product-row:hover .tile-size-pill {
+  background-color: #e0eaff;
+  border-color: #c3d4f7;
+}
+
+/* ─── Price Tag ─────────────────────────────────────────────────────────── */
+.price-tag {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  font-feature-settings: "tnum";
+  letter-spacing: -0.01em;
+}
+
+/* ─── Stock Cell ────────────────────────────────────────────────────────── */
+.stock-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stock-dot.dot-green { background: var(--success); box-shadow: 0 0 0 2px var(--success-light); }
+.stock-dot.dot-amber { background: var(--warning); box-shadow: 0 0 0 2px var(--warning-light); }
+.stock-dot.dot-red   { background: var(--danger);  box-shadow: 0 0 0 2px var(--danger-light);  }
+
+/* ─── Action Buttons ────────────────────────────────────────────────────── */
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ─── Modal Grid ────────────────────────────────────────────────────────── */
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 560px) {
+  .modal-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Modal Header Accent Bar ───────────────────────────────────────────── */
+.modal-header {
+  position: relative;
+}
+
+.modal-header-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #60a5fa);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── Read-Only Stock Box (Edit Modal) ──────────────────────────────────── */
+.stock-readonly-box {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0.65rem 0.95rem;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-feature-settings: "tnum";
+  font-size: var(--font-size-sm);
+}
+
+.stock-readonly-unit {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ─── Inline Form Error ─────────────────────────────────────────────────── */
+.form-error {
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+  margin-top: 2px;
+  min-height: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.form-error.visible {
+  max-height: 40px;
+  opacity: 1;
+}
+
+/* ─── Server Error Box (inside modal) ───────────────────────────────────── */
+.form-server-error {
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--danger-text);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  line-height: 1.5;
+  animation: errorSlideIn 0.2s ease;
+}
+
+.form-server-error.hidden {
+  display: none;
+}
+
+@keyframes errorSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── API Error Banner ──────────────────────────────────────────────────── */
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+  animation: errorSlideIn 0.25s ease;
+}
+
+.api-error-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+.api-error-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.api-error-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--danger-text);
+}
+
+.api-error-msg {
+  font-size: var(--font-size-xs);
+  color: var(--danger-text);
+  opacity: 0.85;
+}
+
+/* ─── Button Loading State ──────────────────────────────────────────────── */
+.btn-label, .btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─── Stats Grid ─────────────────────────────────────────────────────────── */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Responsive Table ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-search {
+    max-width: 100%;
+  }
+
+  .toolbar-filters {
+    flex-wrap: wrap;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 420px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

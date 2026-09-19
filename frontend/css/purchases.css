@@ -1,0 +1,436 @@
+/* ==========================================================================
+   Purchases Page — Specific Styles
+   ========================================================================== */
+
+/* ─── Stats Grid Hover ──────────────────────────────────────────────────── */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Purchase Item Row ─────────────────────────────────────────────────── */
+.purchase-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0.8fr auto;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-light);
+  animation: rowSlideIn 0.25s ease;
+}
+
+.purchase-item-row:last-child {
+  border-bottom: none;
+}
+
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rowFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+
+.purchase-item-row .form-control,
+.purchase-item-row .form-select {
+  font-size: var(--font-size-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.purchase-item-row .row-total {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  font-feature-settings: "tnum";
+  padding: 0 var(--space-2);
+}
+
+.btn-remove-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: 3px;
+}
+
+.btn-remove-row:hover {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ─── Items Header Row ──────────────────────────────────────────────────── */
+.items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 0.8fr auto;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-2) 0;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--space-1);
+}
+
+.items-header span {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Grand Total Bar ───────────────────────────────────────────────────── */
+.grand-total-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-4);
+  color: #fff;
+}
+
+.grand-total-bar .total-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.grand-total-bar .total-value {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/* ─── Add Row Button ────────────────────────────────────────────────────── */
+.btn-add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px dashed var(--primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: var(--space-3);
+}
+
+.btn-add-row:hover {
+  background: #dbeafe;
+  box-shadow: var(--glow-primary);
+}
+
+/* ─── History Cards ─────────────────────────────────────────────────────── */
+.purchase-history-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+  margin-bottom: var(--space-4);
+}
+
+.purchase-history-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.purchase-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  gap: var(--space-4);
+}
+
+.purchase-card-header:hover {
+  background: #f0f6ff;
+}
+
+.purchase-supplier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.purchase-supplier-name {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--text-main);
+  text-transform: capitalize;
+}
+
+.purchase-date {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.purchase-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.purchase-amount {
+  font-weight: 800;
+  font-size: var(--font-size-base);
+  color: var(--text-main);
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+.purchase-toggle-icon {
+  color: var(--text-light);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.purchase-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.purchase-card-body {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.purchase-card-body.open {
+  max-height: 600px;
+  padding: var(--space-4) var(--space-5);
+}
+
+.purchase-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.purchase-items-table th {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.purchase-items-table td {
+  font-size: var(--font-size-sm);
+  padding: var(--space-3);
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.purchase-items-table tr:last-child td {
+  border-bottom: none;
+}
+
+.purchase-items-table .item-product-name {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ─── Empty State ───────────────────────────────────────────────────────── */
+.purchases-empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-8);
+}
+
+.purchases-empty-state .empty-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--primary-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  margin-bottom: var(--space-5);
+}
+
+/* ─── Modal Grid (reuse from products) ──────────────────────────────────── */
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 560px) {
+  .modal-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Modal Header Accent Bar ───────────────────────────────────────────── */
+.modal-header {
+  position: relative;
+}
+
+.modal-header-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #60a5fa);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── Form Error (from products) ────────────────────────────────────────── */
+.form-error {
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+  margin-top: 2px;
+  min-height: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.form-error.visible {
+  max-height: 40px;
+  opacity: 1;
+}
+
+.form-server-error {
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--danger-text);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  line-height: 1.5;
+  animation: errorSlideIn 0.2s ease;
+}
+
+.form-server-error.hidden {
+  display: none;
+}
+
+@keyframes errorSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Button Loading State ──────────────────────────────────────────────── */
+.btn-label, .btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─── Items Count Badge ─────────────────────────────────────────────────── */
+.items-count-badge {
+  font-size: var(--font-size-xs);
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+/* ─── Create Product Inline Link ────────────────────────────────────────── */
+.create-product-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: var(--space-1) 0;
+  transition: color var(--transition-fast);
+}
+
+.create-product-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .purchase-item-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-4) 0;
+  }
+
+  .items-header {
+    display: none;
+  }
+
+  .purchase-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .purchase-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 420px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

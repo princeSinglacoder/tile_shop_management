@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Manage your tile inventory — add, edit, search, and delete products from your catalog.">
+  <title>Products Catalog — TilePro Management</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/products.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="3" y="13" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="13" width="8" height="8" rx="1.5"></rect>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">TilePro</span>
+          <span class="brand-subtitle">Management</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-menu">
+        <li class="menu-category">Main Menu</li>
+        <li>
+          <a href="dashboard.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="products.html" class="nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span>Products</span>
+          </a>
+        </li>
+
+        <li class="menu-category">Transactions</li>
+        <li>
+          <a href="sales.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span>Sales</span>
+          </a>
+        </li>
+        <li>
+          <a href="purchases.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-2z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span>Purchases</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-info-wrapper">
+            <div class="user-avatar" id="sidebarAvatar">A</div>
+            <div class="user-meta">
+              <span class="user-name text-truncate" id="sidebarUsername">Administrator</span>
+              <span class="user-role-badge">Admin</span>
+            </div>
+          </div>
+          <button type="button" class="btn-logout" id="logoutBtn" title="Log Out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <header class="header">
+        <div class="header-left">
+          <button type="button" class="btn-toggle-sidebar" aria-label="Toggle navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="page-title-group">
+            <h1 class="page-title">Tile Inventory &amp; Catalog</h1>
+            <span class="page-subtitle">Manage ceramic, vitrified, porcelain, and stone inventory</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="status-pill" id="connectionStatus">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+          </div>
+          <button type="button" class="btn btn-primary" id="openAddModalBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Add New Tile</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="main-content">
+        <!-- Stats Row -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Total Tile Designs</span>
+              <span class="stat-value" id="statTotalProducts">—</span>
+              <span class="stat-subtext">Active in catalog</span>
+            </div>
+            <div class="stat-icon-wrapper blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Total Brands</span>
+              <span class="stat-value" id="statTotalBrands">—</span>
+              <span class="stat-subtext">Partner manufacturers</span>
+            </div>
+            <div class="stat-icon-wrapper amber">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Low Stock Alerts</span>
+              <span class="stat-value" id="statLowStock" style="color: var(--warning);">—</span>
+              <span class="stat-subtext">&le; 15 units remaining</span>
+            </div>
+            <div class="stat-icon-wrapper rose">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-content">
+              <span class="stat-label">Inventory Valuation</span>
+              <span class="stat-value" id="statInventoryValue" style="font-size: 1.4rem;">₹ —</span>
+              <span class="stat-subtext">Estimated selling value</span>
+            </div>
+            <div class="stat-icon-wrapper emerald">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <div class="input-with-icon">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                id="productSearch"
+                class="form-control"
+                placeholder="Search by tile name, brand, or size..."
+                autocomplete="off"
+              >
+            </div>
+          </div>
+
+          <div class="toolbar-filters">
+            <select id="filterBrand" class="form-select" style="min-width: 150px;">
+              <option value="">All Brands</option>
+            </select>
+
+            <select id="filterSize" class="form-select" style="min-width: 140px;">
+              <option value="">All Sizes</option>
+            </select>
+
+            <select id="sortBy" class="form-select" style="min-width: 160px;">
+              <option value="name-asc">Name (A → Z)</option>
+              <option value="name-desc">Name (Z → A)</option>
+              <option value="price-asc">Price (Low → High)</option>
+              <option value="price-desc">Price (High → Low)</option>
+              <option value="stock-asc">Stock (Low → High)</option>
+              <option value="stock-desc">Stock (High → Low)</option>
+            </select>
+
+            <button type="button" class="btn btn-secondary btn-sm" id="resetFiltersBtn" title="Reset all filters">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <polyline points="23 20 23 14 17 14"></polyline>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+              </svg>
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- API Error Banner (hidden by default) -->
+        <div class="api-error-banner hidden" id="apiErrorBanner" role="alert">
+          <div class="api-error-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div class="api-error-content">
+            <span class="api-error-title">Failed to load products</span>
+            <span class="api-error-msg" id="apiErrorMsg">Could not connect to the server.</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="retryLoadBtn">Retry</button>
+        </div>
+
+        <!-- Products Data Table Card -->
+        <div class="table-card">
+          <div class="card-header" style="padding: var(--space-4) var(--space-6); margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <h2 class="card-title">All Products</h2>
+              <span class="badge badge-neutral" id="productsCount">Loading...</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="refreshBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="productsTable">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Brand</th>
+                  <th>Size</th>
+                  <th>Selling Price</th>
+                  <th>Stock</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <!-- Populated by products.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- =============================================
+       Modal 1: Add New Product
+       ============================================= -->
+  <div class="modal-backdrop" id="addProductModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-accent"></div>
+        <h3 class="modal-title" id="addModalTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--primary)">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add New Tile Product
+        </h3>
+        <button type="button" class="modal-close-btn" data-modal-close aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="addProductForm" novalidate>
+        <div class="modal-body">
+          <!-- Inline form error summary (for server errors) -->
+          <div class="form-server-error hidden" id="addServerError" role="alert"></div>
+
+          <div class="form-group">
+            <label for="add_name" class="form-label">
+              Tile Name <span class="required-star">*</span>
+            </label>
+            <input
+              type="text"
+              id="add_name"
+              class="form-control"
+              placeholder="e.g. Royal Statuario Glazed Vitrified"
+              maxlength="100"
+              autocomplete="off"
+            >
+            <span class="form-error" id="err_add_name"></span>
+          </div>
+
+          <div class="modal-grid">
+            <div class="form-group">
+              <label for="add_brand" class="form-label">
+                Brand / Manufacturer <span class="required-star">*</span>
+              </label>
+              <input
+                type="text"
+                id="add_brand"
+                class="form-control"
+                placeholder="e.g. Kajaria, Somany, Nitco"
+                maxlength="100"
+                autocomplete="off"
+              >
+              <span class="form-error" id="err_add_brand"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="add_size" class="form-label">
+                Dimensions / Size <span class="required-star">*</span>
+              </label>
+              <input
+                type="text"
+                id="add_size"
+                class="form-control"
+                placeholder="e.g. 600×1200 mm"
+                maxlength="30"
+                autocomplete="off"
+              >
+              <span class="form-error" id="err_add_size"></span>
+            </div>
+          </div>
+
+          <div class="modal-grid">
+            <div class="form-group">
+              <label for="add_price" class="form-label">
+                Selling Price (₹) <span class="required-star">*</span>
+              </label>
+              <input
+                type="number"
+                id="add_price"
+                class="form-control"
+                placeholder="1250.00"
+                step="0.01"
+                min="0.01"
+              >
+              <span class="form-hint">Must be greater than ₹ 0</span>
+              <span class="form-error" id="err_add_price"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="add_stock" class="form-label">
+                Initial Stock (Boxes) <span class="required-star">*</span>
+              </label>
+              <input
+                type="number"
+                id="add_stock"
+                class="form-control"
+                placeholder="50"
+                step="1"
+                min="0"
+              >
+              <span class="form-hint">Available inventory in boxes</span>
+              <span class="form-error" id="err_add_stock"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="addSubmitBtn">
+            <span class="btn-label">Save Tile</span>
+            <span class="btn-spinner hidden">
+              <span class="spinner-sm"></span>
+              Adding...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =============================================
+       Modal 2: Edit Product (ProductUpdate schema)
+       ============================================= -->
+  <div class="modal-backdrop" id="editProductModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-accent" style="background: linear-gradient(90deg, var(--accent), #fbbf24);"></div>
+        <h3 class="modal-title" id="editModalTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--accent)">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit Tile Product
+        </h3>
+        <button type="button" class="modal-close-btn" data-modal-close aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="editProductForm" novalidate>
+        <div class="modal-body">
+          <!-- Inline server error -->
+          <div class="form-server-error hidden" id="editServerError" role="alert"></div>
+
+          <div class="form-group">
+            <label for="edit_name" class="form-label">Tile Name</label>
+            <input
+              type="text"
+              id="edit_name"
+              class="form-control"
+              maxlength="100"
+              autocomplete="off"
+            >
+            <span class="form-error" id="err_edit_name"></span>
+          </div>
+
+          <div class="modal-grid">
+            <div class="form-group">
+              <label for="edit_brand" class="form-label">Brand</label>
+              <input
+                type="text"
+                id="edit_brand"
+                class="form-control"
+                maxlength="100"
+                autocomplete="off"
+              >
+              <span class="form-error" id="err_edit_brand"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="edit_size" class="form-label">Size</label>
+              <input
+                type="text"
+                id="edit_size"
+                class="form-control"
+                maxlength="30"
+                autocomplete="off"
+              >
+              <span class="form-error" id="err_edit_size"></span>
+            </div>
+          </div>
+
+          <div class="modal-grid">
+            <div class="form-group">
+              <label for="edit_price" class="form-label">Selling Price (₹)</label>
+              <input
+                type="number"
+                id="edit_price"
+                class="form-control"
+                step="0.01"
+                min="0.01"
+              >
+              <span class="form-hint">Must be greater than ₹ 0</span>
+              <span class="form-error" id="err_edit_price"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Current Stock</label>
+              <div class="stock-readonly-box">
+                <span id="editStockDisplay">0</span>
+                <span class="stock-readonly-unit">boxes</span>
+              </div>
+              <span class="form-hint">Managed via Purchases &amp; Sales</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-label">Update Tile</span>
+            <span class="btn-spinner hidden">
+              <span class="spinner-sm"></span>
+              Saving...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+</body>
+</html>

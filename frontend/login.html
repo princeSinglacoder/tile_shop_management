@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Tile Shop Management System</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body">
+  <div class="login-card-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          <!-- Geometric ceramic tile logo icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="3" width="8" height="8" rx="1.5"></rect>
+            <rect x="3" y="13" width="8" height="8" rx="1.5"></rect>
+            <rect x="13" y="13" width="8" height="8" rx="1.5"></rect>
+          </svg>
+        </div>
+        <h1 class="login-title">TilePro Admin</h1>
+        <p class="login-desc">Tile Shop Management & Inventory Control</p>
+      </div>
+
+      <!-- Alert Message Banner -->
+      <div id="loginAlert" class="alert alert-danger hidden" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span id="loginAlertMsg">Invalid credentials</span>
+      </div>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="email" class="form-label">
+            <span>Admin Email</span>
+          </label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-control" 
+              placeholder="admin@tileshop.com" 
+              autocomplete="email" 
+              required
+            >
+          </div>
+          <span class="form-error hidden" id="emailError">Please enter a valid email address</span>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">
+            <span>Password</span>
+          </label>
+          <div class="input-with-icon">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-control" 
+              placeholder="••••••••••••" 
+              autocomplete="current-password" 
+              required
+            >
+          </div>
+          <span class="form-error hidden" id="passwordError">Password is required</span>
+        </div>
+
+        <button type="submit" id="submitBtn" class="login-btn">
+          <span id="btnText">Sign In to Dashboard</span>
+          <div id="btnSpinner" class="spinner hidden" style="width: 18px; height: 18px; border-width: 2px; border-color: rgba(255,255,255,0.3); border-top-color: #fff;"></div>
+        </button>
+      </form>
+
+      <div class="login-footer-info">
+        <span class="login-status-badge">
+          <span class="dot"></span> Backend API: 127.0.0.1:8000
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div class="toast-container"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form        = document.getElementById("loginForm");
+      const emailInput  = document.getElementById("email");
+      const passInput   = document.getElementById("password");
+      const submitBtn   = document.getElementById("submitBtn");
+      const btnText     = document.getElementById("btnText");
+      const btnSpinner  = document.getElementById("btnSpinner");
+      const alertBox    = document.getElementById("loginAlert");
+      const alertMsg    = document.getElementById("loginAlertMsg");
+      const emailErr    = document.getElementById("emailError");
+      const passErr     = document.getElementById("passwordError");
+
+      const showError = (msg) => {
+        alertMsg.textContent = msg;
+        alertBox.classList.remove("hidden");
+        alertBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+
+      const hideError = () => alertBox.classList.add("hidden");
+
+      const setLoading = (loading) => {
+        submitBtn.disabled = loading;
+        btnText.textContent = loading ? "Authenticating…" : "Sign In to Dashboard";
+        btnSpinner.classList.toggle("hidden", !loading);
+      };
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError();
+        emailErr.classList.add("hidden");
+        passErr.classList.add("hidden");
+        emailInput.classList.remove("is-invalid");
+        passInput.classList.remove("is-invalid");
+
+        const email    = emailInput.value.trim();
+        const password = passInput.value;
+
+        // Client-side validation
+        let hasError = false;
+        if (!email || !email.includes("@")) {
+          emailErr.classList.remove("hidden");
+          emailInput.classList.add("is-invalid");
+          emailInput.focus();
+          hasError = true;
+        }
+        if (!password) {
+          passErr.classList.remove("hidden");
+          passInput.classList.add("is-invalid");
+          if (!hasError) passInput.focus();
+          hasError = true;
+        }
+        if (hasError) return;
+
+        setLoading(true);
+
+        try {
+          // Auth.login() calls POST /user/login with credentials: "include"
+          // The backend sets the HttpOnly access_token cookie on success
+          await Auth.login(email, password);
+
+          UI.showToast("Success", "Logged in — redirecting…", "success");
+
+          // Small delay so the user sees the success toast before navigating
+          setTimeout(() => {
+            window.location.replace("dashboard.html");
+          }, 600);
+
+        } catch (err) {
+          showError(err.message || "Login failed. Please try again.");
+          UI.showToast("Login failed", err.message || "Check your credentials", "error");
+          setLoading(false);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

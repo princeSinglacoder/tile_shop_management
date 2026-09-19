@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tile Shop Management System</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script src="js/config.js"></script>
+  <script>
+    // Probe backend — redirect to dashboard if session cookie is valid, else login
+    fetch(CONFIG.API_BASE_URL + CONFIG.ENDPOINTS.ME, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      credentials: "include"
+    })
+    .then(res => {
+      if (res.ok) {
+        window.location.replace("dashboard.html");
+      } else {
+        window.location.replace("login.html");
+      }
+    })
+    .catch(() => {
+      window.location.replace("login.html");
+    });
+  </script>
+</head>
+<body style="background-color:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
+  <p>Loading Tile Shop Portal…</p>
+</body>
+</html>
