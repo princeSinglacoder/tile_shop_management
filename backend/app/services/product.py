@@ -33,7 +33,7 @@ def add_product(tempProduct: TempProduct, db: Session):
         name=tempProduct.name,
         brand=tempProduct.brand,
         size=tempProduct.size,
-        selling_price=tempProduct.selling_price,
+        purchase_price=tempProduct.purchase_price,
         stock_quantity=tempProduct.stock_quantity   
     )
 

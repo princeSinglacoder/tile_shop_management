@@ -61,7 +61,23 @@ def create_purchase(tempPurchase: TempPurchase, db: Session):
         )
         # Increase stock (column is now Integer)
         current_stock = product.product_stock_quantity or 0
-        product.product_stock_quantity = current_stock + item.quantity
+        current_avg_pp = product.product_purchase_price or 0.0
+
+        new_quantity = item.quantity
+        new_purchase_price = item.purchase_price
+
+        new_stock = current_stock+new_quantity
+
+        if current_stock == 0:
+            new_avg_pp = new_purchase_price
+        else:
+            new_avg_pp = (
+                (current_stock * current_avg_pp)
+                + (new_quantity * new_purchase_price)
+            ) / new_stock
+
+        product.product_stock_quantity = new_stock
+        product.product_purchase_price = new_avg_pp
 
     # Commit everything in a single transaction; rollback on any failure
     try:
@@ -116,4 +132,4 @@ def get_all_purchase(db: Session):
             "items": serialized_items
         })
 
-    return result
+    return result

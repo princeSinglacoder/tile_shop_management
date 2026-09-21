@@ -10,6 +10,6 @@ class ProductDBModel(Base):
     product_name = Column(String)
     product_brand = Column(String)
     product_size = Column(String)
-    product_selling_price = Column(Float)
+    product_purchase_price = Column(Float)
     product_stock_quantity = Column(Integer)
     
