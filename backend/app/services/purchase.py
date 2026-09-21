@@ -59,12 +59,9 @@ def create_purchase(tempPurchase: TempPurchase, db: Session):
                 purchase_price=item.purchase_price,
             )
         )
-        # Increase stock safely (column stored as String, cast back to str)
-        try:
-            current_stock = int(float(product.product_stock_quantity or 0))
-        except (ValueError, TypeError):
-            current_stock = 0
-        product.product_stock_quantity = str(current_stock + item.quantity)
+        # Increase stock (column is now Integer)
+        current_stock = product.product_stock_quantity or 0
+        product.product_stock_quantity = current_stock + item.quantity
 
     # Commit everything in a single transaction; rollback on any failure
     try:

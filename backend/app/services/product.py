@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.schemas.product import TempProduct, Product, ProductUpdate
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -5,7 +6,8 @@ from app.databases.product import add_product as add_product_db
 from app.databases.product import update_product as update_product_db
 from app.models.product import ProductDBModel
 from app.utils.normalize_product import normalize
-
+from app.models.purchase import PurchaseItemDBModel
+from app.models.sale import SaleItemDBModel
 
 def add_product(tempProduct: TempProduct, db: Session):
 
@@ -60,7 +62,35 @@ def delete_product(product_id: str, db: Session):
     if not existing_product:
         return {"message": "Product does not exist"}
 
-    # Delete the product from the database
-    db.delete(existing_product)
-    db.commit()
-    return {"message": "Product deleted successfully"}
+
+    # Check purchase history
+    purchase_exists = db.query(PurchaseItemDBModel).filter(
+        PurchaseItemDBModel.product_id==product_id
+    ).first()
+
+    # Check sale history
+    sale_exists =db.query(SaleItemDBModel).filter(
+        SaleItemDBModel.product_id==product_id
+    ).first()
+
+    if purchase_exists or sale_exists:
+        raise HTTPException(
+            status_code=409,
+            detail="Product cannot be deleted because it has transaction history."
+        )
+
+    # Safe to delete
+    try:
+        db.delete(existing_product)
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete product"
+        )
+
+    return {
+        "message": "Product deleted successfully"
+    }

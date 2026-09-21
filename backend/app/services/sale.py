@@ -33,10 +33,7 @@ def create_sale(tempSale: TempSale, db: Session):
             )
 
         # Check available stock is enough
-        try:
-            current_stock = int(float(product.product_stock_quantity or 0))
-        except (ValueError, TypeError):
-            current_stock = 0
+        current_stock = product.product_stock_quantity or 0
 
         if current_stock < item.quantity:
             raise HTTPException(
@@ -52,10 +49,7 @@ def create_sale(tempSale: TempSale, db: Session):
     # Get selling_price from DB and calculate total_amount in the backend
     total_amount = 0.0
     for item, product in products:
-        try:
-            selling_price = float(product.product_selling_price or 0)
-        except (ValueError, TypeError):
-            selling_price = 0.0
+        selling_price = product.product_selling_price or 0.0
         total_amount += item.quantity * selling_price
 
     # Build ORM objects (not yet committed)
@@ -68,10 +62,7 @@ def create_sale(tempSale: TempSale, db: Session):
 
     sale_items = []
     for item, product in products:
-        try:
-            selling_price = float(product.product_selling_price or 0)
-        except (ValueError, TypeError):
-            selling_price = 0.0
+        selling_price = product.product_selling_price or 0.0
 
         sale_items.append(
             SaleItemDBModel(
@@ -82,12 +73,9 @@ def create_sale(tempSale: TempSale, db: Session):
                 selling_price=selling_price,
             )
         )
-        # Decrease stock safely (column stored as String, cast back to str)
-        try:
-            current_stock = int(float(product.product_stock_quantity or 0))
-        except (ValueError, TypeError):
-            current_stock = 0
-        product.product_stock_quantity = str(current_stock - item.quantity)
+        # Decrease stock (column is now Integer)
+        current_stock = product.product_stock_quantity or 0
+        product.product_stock_quantity = current_stock - item.quantity
 
     # Commit everything in a single transaction; rollback on any failure
     try:

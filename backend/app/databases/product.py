@@ -10,8 +10,8 @@ def add_product(product: Product, db: Session):
         product_name=product.name,
         product_brand=product.brand,
         product_size=product.size,
-        product_selling_price=str(product.selling_price),
-        product_stock_quantity=str(product.stock_quantity)
+        product_selling_price=product.selling_price,
+        product_stock_quantity=product.stock_quantity
     )
 
     # Add the new product to the database
@@ -42,7 +42,7 @@ def update_product(product_id: str, product_update: Product, db: Session):
         existing_product.product_size = product_update.size
 
     if product_update.selling_price is not None:
-        existing_product.product_selling_price = str(product_update.selling_price)
+        existing_product.product_selling_price = product_update.selling_price
 
     # Commit the changes to the database
     db.commit()
