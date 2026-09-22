@@ -8,9 +8,17 @@ class SaleDBModel(Base):
 
     customer_name = Column(String, nullable=False)
 
+    phone_number = Column(String, nullable=False)
+
     date = Column(Date, nullable=False)
 
     total_amount = Column(Float, nullable=False)
+
+    cash_amount = Column(Float, nullable=False, default=0.0)
+
+    upi_amount = Column(Float, nullable=False, default=0.0)
+
+    outstanding_amount = Column(Float, nullable=False, default=0.0)
 
 class SaleItemDBModel(Base):
     __tablename__ = "sale_items"
