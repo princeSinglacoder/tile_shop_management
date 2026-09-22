@@ -5,8 +5,9 @@
  *
  * Backend endpoints:
  *  GET    /product/all    — list all catalog products (dropdown & live stock)
- *  POST   /sales/create   — create sale { customer_name, sale_date, items: [{ product_id, quantity }] }
+ *  POST   /sales/create   — create sale { customer_name, phone_number, sale_date, items: [{ product_id, quantity, selling_price }], cash_amount, upi_amount, udhari_amount }
  *  GET    /sales/all      — list all sales with line items
+ *  POST   /sales/{id}/payment — record a due payment { payment_method, amount }
  */
 
 const Sales = (() => {
@@ -153,11 +154,12 @@ const Sales = (() => {
     } else {
       filteredSalesList = salesList.filter((sale) => {
         const custMatch = (sale.customer_name || "").toLowerCase().includes(query);
+        const phoneMatch = (sale.phone_number || "").toLowerCase().includes(query);
         const idMatch = (sale.sale_id || "").toLowerCase().includes(query);
         const itemMatch = (sale.items || []).some((item) =>
           (item.product_name || "").toLowerCase().includes(query)
         );
-        return custMatch || idMatch || itemMatch;
+        return custMatch || phoneMatch || idMatch || itemMatch;
       });
     }
 
@@ -207,15 +209,42 @@ const Sales = (() => {
       const dateStr = formatDate(sale.date);
       const itemCount = sale.items ? sale.items.length : 0;
       const totalBoxes = (sale.items || []).reduce((acc, it) => acc + (parseInt(it.quantity, 10) || 0), 0);
+      const outstanding = parseFloat(sale.outstanding_amount || 0) || 0;
+      const phoneStr = sale.phone_number ? ` • 📞 ${UI.escapeHTML(sale.phone_number)}` : "";
+
+      const paymentBadge = outstanding > 0
+        ? `<span class="badge-due">Due: ${UI.formatCurrency(outstanding)}</span>`
+        : `<span class="badge-paid">✓ Fully Paid</span>`;
+
+      const payDueBtn = outstanding > 0
+        ? `
+          <button
+            type="button"
+            class="btn-pay-due"
+            onclick="event.stopPropagation(); Sales.openPaymentModal('${UI.escapeHTML(sale.sale_id)}')"
+            title="Collect Due Payment"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>Pay Due</span>
+          </button>
+        `
+        : "";
 
       return `
         <div class="sale-history-card" data-sale-id="${UI.escapeHTML(sale.sale_id)}">
           <div class="sale-card-header" onclick="Sales.toggleCard('${UI.escapeHTML(sale.sale_id)}')" role="button" aria-expanded="false" tabindex="0">
             <div class="sale-customer-info">
-              <span class="sale-customer-name">${UI.escapeHTML(sale.customer_name)}</span>
-              <span class="sale-date">${dateStr} • ${itemCount} product${itemCount !== 1 ? "s" : ""} (${totalBoxes} box${totalBoxes !== 1 ? "es" : ""})</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="sale-customer-name">${UI.escapeHTML(sale.customer_name)}</span>
+                ${paymentBadge}
+              </div>
+              <span class="sale-date">${dateStr}${phoneStr} • ${itemCount} product${itemCount !== 1 ? "s" : ""} (${totalBoxes} box${totalBoxes !== 1 ? "es" : ""})</span>
             </div>
             <div class="sale-meta">
+              ${payDueBtn}
               <span class="sale-amount">${UI.formatCurrency(sale.total_amount)}</span>
               <svg class="sale-toggle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -223,6 +252,26 @@ const Sales = (() => {
             </div>
           </div>
           <div class="sale-card-body" id="body_${UI.escapeHTML(sale.sale_id)}">
+            <!-- Payment Settlement Summary Box -->
+            <div class="sale-payment-summary">
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">Billed Revenue</span>
+                <span class="sale-payment-val">${UI.formatCurrency(sale.total_amount)}</span>
+              </div>
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">Cash Paid</span>
+                <span class="sale-payment-val">${UI.formatCurrency(sale.cash_amount || 0)}</span>
+              </div>
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">UPI Paid</span>
+                <span class="sale-payment-val">${UI.formatCurrency(sale.upi_amount || 0)}</span>
+              </div>
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">Outstanding Due (Udhaari)</span>
+                <span class="sale-payment-val ${outstanding > 0 ? 'due' : ''}">${UI.formatCurrency(outstanding)}</span>
+              </div>
+            </div>
+
             <table class="sale-items-table">
               <thead>
                 <tr>
@@ -301,8 +350,18 @@ const Sales = (() => {
       dateInput.value = new Date().toISOString().split("T")[0];
     }
 
+    // Reset phone and payment breakdown fields
+    const phoneInput = $("customerPhone");
+    if (phoneInput) phoneInput.value = "";
+    const cashInput = $("cashAmount");
+    if (cashInput) cashInput.value = "0";
+    const upiInput = $("upiAmount");
+    if (upiInput) upiInput.value = "0";
+    const udhariInput = $("udhariAmount");
+    if (udhariInput) udhariInput.value = "0";
+
     // Clear previous errors
-    clearFormErrors(["err_customer", "err_sale_date"]);
+    clearFormErrors(["err_customer", "err_phone", "err_sale_date", "err_cash", "err_upi", "err_udhari"]);
     showFormServerError("saleServerError", "");
 
     // Reset rows
@@ -313,7 +372,7 @@ const Sales = (() => {
     // Add initial item row
     addItemRow();
 
-    // Update grand total display
+    // Update grand total display & payment balance
     updateGrandTotal();
 
     UI.openModal("createSaleModal");
@@ -630,6 +689,73 @@ const Sales = (() => {
     });
 
     grandTotalEl.textContent = UI.formatCurrency(total);
+    updatePaymentBalance();
+  };
+
+  // ─── Payment Balance Bar ─────────────────────────────────────────────────────
+  const updatePaymentBalance = () => {
+    const settledEl = $("paymentSettledValue");
+    const targetEl = $("paymentTargetValue");
+    const diffBadge = $("paymentDiffBadge");
+
+    const cash = parseFloat($("cashAmount")?.value) || 0;
+    const upi = parseFloat($("upiAmount")?.value) || 0;
+    const udhari = parseFloat($("udhariAmount")?.value) || 0;
+    const settled = Math.round((cash + upi + udhari) * 100) / 100;
+
+    const container = $("saleItemsContainer");
+    let grandTotal = 0;
+    if (container) {
+      container.querySelectorAll(".sale-item-row").forEach((row) => {
+        const qty = parseInt(row.querySelector(".row-quantity")?.value, 10) || 0;
+        const price = parseFloat(row.querySelector(".row-price")?.value) || 0;
+        if (qty > 0 && price > 0) grandTotal += qty * price;
+      });
+    }
+    grandTotal = Math.round(grandTotal * 100) / 100;
+
+    if (settledEl) settledEl.textContent = UI.formatCurrency(settled);
+    if (targetEl) targetEl.textContent = UI.formatCurrency(grandTotal);
+
+    if (!diffBadge) return;
+    const diff = Math.round((settled - grandTotal) * 100) / 100;
+    if (diff === 0) {
+      diffBadge.textContent = "✓ Balanced";
+      diffBadge.className = "payment-diff-badge balanced";
+    } else if (diff > 0) {
+      diffBadge.textContent = `+${UI.formatCurrency(diff)} Over`;
+      diffBadge.className = "payment-diff-badge over";
+    } else {
+      diffBadge.textContent = `${UI.formatCurrency(Math.abs(diff))} Under`;
+      diffBadge.className = "payment-diff-badge under";
+    }
+  };
+
+  // ─── Quick-Fill Payment ───────────────────────────────────────────────────────
+  const quickFillPayment = (method) => {
+    const container = $("saleItemsContainer");
+    let grandTotal = 0;
+    if (container) {
+      container.querySelectorAll(".sale-item-row").forEach((row) => {
+        const qty = parseInt(row.querySelector(".row-quantity")?.value, 10) || 0;
+        const price = parseFloat(row.querySelector(".row-price")?.value) || 0;
+        if (qty > 0 && price > 0) grandTotal += qty * price;
+      });
+    }
+    grandTotal = Math.round(grandTotal * 100) / 100;
+
+    const cashInput = $("cashAmount");
+    const upiInput = $("upiAmount");
+    const udhariInput = $("udhariAmount");
+    if (cashInput) cashInput.value = "0";
+    if (upiInput) upiInput.value = "0";
+    if (udhariInput) udhariInput.value = "0";
+
+    if (method === "cash" && cashInput) cashInput.value = grandTotal;
+    else if (method === "upi" && upiInput) upiInput.value = grandTotal;
+    else if (method === "udhari" && udhariInput) udhariInput.value = grandTotal;
+
+    updatePaymentBalance();
   };
 
   // ─── Form Submission & Validation ───────────────────────────────────────────
@@ -638,10 +764,11 @@ const Sales = (() => {
     showFormServerError("saleServerError", "");
 
     const customerName = ($("customerName")?.value || "").trim();
+    const phoneNumber = ($("customerPhone")?.value || "").trim();
     const saleDate = ($("saleDate")?.value || "").trim();
 
     let valid = true;
-    clearFormErrors(["err_customer", "err_sale_date"]);
+    clearFormErrors(["err_customer", "err_phone", "err_sale_date", "err_cash", "err_upi", "err_udhari"]);
 
     // Customer Name Validation
     if (!customerName) {
@@ -649,6 +776,15 @@ const Sales = (() => {
       valid = false;
     } else if (customerName.length > 100) {
       setFieldError("err_customer", "Customer name cannot exceed 100 characters.");
+      valid = false;
+    }
+
+    // Phone Number Validation
+    if (!phoneNumber) {
+      setFieldError("err_phone", "Phone number is required.");
+      valid = false;
+    } else if (!/^\d{10}$/.test(phoneNumber)) {
+      setFieldError("err_phone", "Phone number must be exactly 10 digits.");
       valid = false;
     }
 
@@ -751,11 +887,33 @@ const Sales = (() => {
       return;
     }
 
-    // Submit payload — matches FastAPI TempSale schema: { customer_name, sale_date, items }
+    // Payment amounts
+    const cashAmount = Math.round((parseFloat($("cashAmount")?.value) || 0) * 100) / 100;
+    const upiAmount = Math.round((parseFloat($("upiAmount")?.value) || 0) * 100) / 100;
+    const udhariAmount = Math.round((parseFloat($("udhariAmount")?.value) || 0) * 100) / 100;
+
+    // Validate that payment total equals sale total (also enforced by backend)
+    const grandTotal = Math.round(items.reduce((sum, it) => sum + it.quantity * it.selling_price, 0) * 100) / 100;
+    const paymentTotal = Math.round((cashAmount + upiAmount + udhariAmount) * 100) / 100;
+
+    if (paymentTotal !== grandTotal) {
+      showFormServerError(
+        "saleServerError",
+        `Payment total (${UI.formatCurrency(paymentTotal)}) must equal sale total (${UI.formatCurrency(grandTotal)}). ` +
+        `Adjust Cash, UPI, or Udhaari amounts so they balance.`
+      );
+      return;
+    }
+
+    // Submit payload — matches FastAPI TempSale schema
     const payload = {
       customer_name: customerName,
+      phone_number: phoneNumber,
       sale_date: saleDate,
       items: items,
+      cash_amount: cashAmount,
+      upi_amount: upiAmount,
+      udhari_amount: udhariAmount,
     };
 
     setButtonLoading("saleSubmitBtn", true);
@@ -861,11 +1019,151 @@ const Sales = (() => {
     // Add Item Row
     $("addSaleItemRowBtn")?.addEventListener("click", addItemRow);
 
-    // Form Submit
+    // Sale Form Submit
     $("saleForm")?.addEventListener("submit", handleSaleSubmit);
+
+    // Payment Form Submit
+    $("paymentForm")?.addEventListener("submit", handlePaymentSubmit);
+
+    // Payment inputs — live balance bar update
+    ["cashAmount", "upiAmount", "udhariAmount"].forEach((id) => {
+      $(id)?.addEventListener("input", updatePaymentBalance);
+    });
 
     // Search / Filter Input
     $("salesSearchInput")?.addEventListener("input", applySearchFilter);
+  };
+
+  // ─── Payment Modal ───────────────────────────────────────────────────────────
+  const openPaymentModal = (saleId) => {
+    const sale = salesList.find((s) => s.sale_id === saleId);
+    if (!sale) return;
+
+    // Populate sale summary
+    const summaryEl = $("payModalSummary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div><strong>${UI.escapeHTML(sale.customer_name)}</strong>&nbsp;&nbsp;${sale.phone_number ? "📞 " + UI.escapeHTML(sale.phone_number) : ""}</div>
+          <div style="font-size:var(--font-size-xs); color:var(--text-muted);">
+            Sale ID: ${UI.escapeHTML(sale.sale_id.slice(0, 8))}…
+            &nbsp;·&nbsp; Total: <strong>${UI.formatCurrency(sale.total_amount)}</strong>
+          </div>
+          <div style="margin-top:4px; display:flex; gap:16px; font-size:var(--font-size-xs);">
+            <span>Cash: ${UI.formatCurrency(sale.cash_amount || 0)}</span>
+            <span>UPI: ${UI.formatCurrency(sale.upi_amount || 0)}</span>
+            <span style="color:#dc2626; font-weight:700;">Outstanding: ${UI.formatCurrency(sale.outstanding_amount || 0)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Store sale_id in hidden field
+    const hiddenId = $("paySaleId");
+    if (hiddenId) hiddenId.value = saleId;
+
+    // Reset form
+    const payForm = $("paymentForm");
+    if (payForm) payForm.reset();
+    const payMethod = $("payMethod");
+    if (payMethod) payMethod.value = "cash";
+    const payAmount = $("payAmount");
+    if (payAmount) payAmount.value = "";
+
+    // Wire "Pay Full Due" shortcut button
+    const btnFull = $("btnPayFullDue");
+    if (btnFull) {
+      btnFull.onclick = () => {
+        if (payAmount) payAmount.value = parseFloat(sale.outstanding_amount || 0).toFixed(2);
+      };
+    }
+
+    showFormServerError("paymentServerError", "");
+    UI.openModal("makePaymentModal");
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    showFormServerError("paymentServerError", "");
+
+    const saleId = $("paySaleId")?.value || "";
+    const payMethod = $("payMethod")?.value || "";
+    const rawAmount = ($("payAmount")?.value || "").trim();
+    const amount = parseFloat(rawAmount);
+
+    if (!saleId) {
+      showFormServerError("paymentServerError", "Sale ID missing. Please close and reopen the modal.");
+      return;
+    }
+    if (!rawAmount || isNaN(amount) || amount <= 0) {
+      setFieldError("err_pay_amount", "Please enter a valid payment amount greater than 0.");
+      return;
+    }
+
+    // Client-side: amount must not exceed outstanding
+    const sale = salesList.find((s) => s.sale_id === saleId);
+    if (sale && amount > parseFloat(sale.outstanding_amount || 0)) {
+      setFieldError("err_pay_amount",
+        `Amount (${UI.formatCurrency(amount)}) cannot exceed outstanding due (${UI.formatCurrency(sale.outstanding_amount)}).`
+      );
+      return;
+    }
+
+    setButtonLoading("paymentSubmitBtn", true);
+
+    try {
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALE_PAYMENT(saleId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ payment_method: payMethod, amount: amount }),
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        UI.showToast("Session Expired", "Please log in again.", "error");
+        setTimeout(() => { window.location.href = "login.html"; }, 1200);
+        return;
+      }
+      if (response.status === 403) {
+        showFormServerError("paymentServerError", "Permission denied. Only administrators can record payments.");
+        return;
+      }
+      if (response.status === 422) {
+        const detail = result.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((d) => `${d.loc?.slice(1)?.join(".")}: ${d.msg}`).join("; ")
+          : String(detail || "Validation error.");
+        showFormServerError("paymentServerError", msg);
+        return;
+      }
+      if (!response.ok) {
+        showFormServerError("paymentServerError", result.detail || result.message || `Error (${response.status})`);
+        return;
+      }
+
+      // Success
+      UI.showToast(
+        "Payment Recorded",
+        `Payment of ${UI.formatCurrency(amount)} recorded. Outstanding: ${UI.formatCurrency(result.outstanding_amount)}`,
+        "success"
+      );
+      UI.closeModal("makePaymentModal");
+      await loadSales();
+
+    } catch (err) {
+      console.error("[Sales] handlePaymentSubmit error:", err);
+      showFormServerError("paymentServerError", "Could not reach the backend server. Please verify connection.");
+    } finally {
+      setButtonLoading("paymentSubmitBtn", false);
+    }
   };
 
   // ─── Initialization ─────────────────────────────────────────────────────────
@@ -888,5 +1186,7 @@ const Sales = (() => {
     toggleCard,
     addItemRow,
     removeItemRow,
+    openPaymentModal,
+    quickFillPayment,
   };
 })();

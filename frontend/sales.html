@@ -241,15 +241,24 @@
         <div class="modal-body">
           <div class="form-server-error hidden" id="saleServerError" role="alert"></div>
 
-          <!-- Customer & Date -->
-          <div class="modal-grid" style="margin-bottom: var(--space-4);">
+          <!-- Customer, Phone & Date -->
+          <div class="modal-grid-3" style="margin-bottom: var(--space-4);">
             <div class="form-group">
               <label for="customerName" class="form-label">
                 Customer Name <span class="required-star">*</span>
               </label>
               <input type="text" id="customerName" class="form-control"
-                placeholder="e.g. Rahul Sharma / Apex Developers" maxlength="100" autocomplete="off">
+                placeholder="e.g. Rahul Sharma" maxlength="100" autocomplete="off">
               <span class="form-error" id="err_customer"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="customerPhone" class="form-label">
+                Phone Number <span class="required-star">*</span>
+              </label>
+              <input type="tel" id="customerPhone" class="form-control"
+                placeholder="10-digit mobile, e.g. 9876543210" maxlength="10" autocomplete="off">
+              <span class="form-error" id="err_phone"></span>
             </div>
 
             <div class="form-group">
@@ -300,6 +309,50 @@
               <span class="total-label">Grand Total Sale Amount:</span>
               <span class="total-value" id="saleGrandTotalValue">₹ 0.00</span>
             </div>
+
+            <!-- Payment Settlement Breakdown Section -->
+            <div class="payment-breakdown-section">
+              <div class="payment-breakdown-title">
+                <span>Payment Settlement Breakdown <span class="required-star">*</span></span>
+                <div class="payment-quick-actions">
+                  <span style="font-size: 11px; color: var(--text-muted); text-transform: none; font-weight: 500;">Quick Fill:</span>
+                  <button type="button" class="btn-quick-fill" onclick="Sales.quickFillPayment('cash')">Full Cash</button>
+                  <button type="button" class="btn-quick-fill" onclick="Sales.quickFillPayment('upi')">Full UPI</button>
+                  <button type="button" class="btn-quick-fill" onclick="Sales.quickFillPayment('udhari')">Full Udhaari</button>
+                </div>
+              </div>
+
+              <div class="payment-grid">
+                <div class="form-group">
+                  <label for="cashAmount" class="form-label">
+                    Cash Paid (₹)
+                  </label>
+                  <input type="number" id="cashAmount" class="form-control" placeholder="0.00" min="0" step="0.01" value="0">
+                  <span class="form-error" id="err_cash"></span>
+                </div>
+
+                <div class="form-group">
+                  <label for="upiAmount" class="form-label">
+                    UPI Received (₹)
+                  </label>
+                  <input type="number" id="upiAmount" class="form-control" placeholder="0.00" min="0" step="0.01" value="0">
+                  <span class="form-error" id="err_upi"></span>
+                </div>
+
+                <div class="form-group">
+                  <label for="udhariAmount" class="form-label">
+                    Udhaari / Outstanding (₹)
+                  </label>
+                  <input type="number" id="udhariAmount" class="form-control" placeholder="0.00" min="0" step="0.01" value="0">
+                  <span class="form-error" id="err_udhari"></span>
+                </div>
+              </div>
+
+              <div class="payment-balance-bar">
+                <span>Settled: <strong id="paymentSettledValue">₹ 0.00</strong> of <span id="paymentTargetValue">₹ 0.00</span></span>
+                <span class="payment-diff-badge balanced" id="paymentDiffBadge">✓ Balanced</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -310,6 +363,77 @@
             <span class="btn-spinner hidden">
               <span class="spinner-sm"></span>
               Recording Sale...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =============================================
+       Modal: Record Customer Due Payment
+       ============================================= -->
+  <div class="modal-backdrop" id="makePaymentModal" role="dialog" aria-modal="true" aria-labelledby="makePaymentTitle">
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <div class="modal-header-accent"></div>
+        <h3 class="modal-title" id="makePaymentTitle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            style="color:var(--primary)">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          Record Due Payment (Udhaari)
+        </h3>
+        <button type="button" class="modal-close-btn" data-modal-close aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="paymentForm" novalidate>
+        <div class="modal-body">
+          <div class="form-server-error hidden" id="paymentServerError" role="alert"></div>
+
+          <!-- Sale Summary Info Card -->
+          <div class="payment-sale-summary" id="payModalSummary">
+            <!-- Dynamic sale info rendered by Sales.openPaymentModal() -->
+          </div>
+
+          <input type="hidden" id="paySaleId" value="">
+
+          <div class="form-group" style="margin-top: var(--space-4);">
+            <label for="payMethod" class="form-label">
+              Payment Mode <span class="required-star">*</span>
+            </label>
+            <select id="payMethod" class="form-select">
+              <option value="cash">Cash Payment</option>
+              <option value="upi">UPI / Online Transfer</option>
+            </select>
+            <span class="form-error" id="err_pay_method"></span>
+          </div>
+
+          <div class="form-group" style="margin-top: var(--space-3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label for="payAmount" class="form-label" style="margin-bottom: 0;">
+                Payment Amount (₹) <span class="required-star">*</span>
+              </label>
+              <button type="button" class="btn-link-xs" id="btnPayFullDue">Pay Full Due</button>
+            </div>
+            <input type="number" id="payAmount" class="form-control" placeholder="Enter amount to pay" min="0.01" step="0.01" autocomplete="off">
+            <span class="form-error" id="err_pay_amount"></span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">
+            <span class="btn-label">Confirm &amp; Record Payment</span>
+            <span class="btn-spinner hidden">
+              <span class="spinner-sm"></span>
+              Recording...
             </span>
           </button>
         </div>
