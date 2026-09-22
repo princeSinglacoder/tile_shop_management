@@ -4,6 +4,7 @@ from datetime import date
 class TempSaleItem(BaseModel):
     product_id: str = Field(..., min_length=1, description="The unique identifier of the product")
     quantity: int = Field(..., gt=0, description="The quantity of the product being sold must be greater than 0")
+    selling_price: float = Field(..., gt=0, description="The selling price of the product must be greater than 0")
 
 class TempSale(BaseModel):
     customer_name: str = Field(..., min_length=1, max_length=100, description="The name of the customer")

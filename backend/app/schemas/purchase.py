@@ -12,7 +12,6 @@ class TempPurchase(BaseModel):
     purchase_date: date = Field(..., description="The date of the purchase in YYYY-MM-DD format")
     items: list[TempPurchaseItem] = Field(..., min_length=1, description="A list of items being purchased. Must contain at least one item.")
 
-
 # class Purchase(TempPurchase):
 #     purchase_id: str = Field(..., description="The unique identifier of the purchase")
 #     total_amount: float = Field(..., gt=0, description="The total amount of the purchase must be greater than 0")

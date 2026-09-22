@@ -4,7 +4,7 @@
 
 /* ─── Modal Sizing ──────────────────────────────────────────────────────── */
 .modal.modal-lg {
-  max-width: 880px;
+  max-width: 960px;
   width: 95%;
 }
 
@@ -21,7 +21,7 @@
 /* ─── Items Header Row ──────────────────────────────────────────────────── */
 .sale-items-header {
   display: grid;
-  grid-template-columns: 2.2fr 1.1fr 0.9fr 1.1fr 1.1fr 38px;
+  grid-template-columns: 2.1fr 1fr 1.05fr 0.85fr 1.1fr 1.1fr 36px;
   gap: var(--space-3);
   padding: 0 0 var(--space-2) 0;
   border-bottom: 2px solid var(--border-color);
@@ -39,7 +39,7 @@
 /* ─── Sale Item Row ─────────────────────────────────────────────────────── */
 .sale-item-row {
   display: grid;
-  grid-template-columns: 2.2fr 1.1fr 0.9fr 1.1fr 1.1fr 38px;
+  grid-template-columns: 2.1fr 1fr 1.05fr 0.85fr 1.1fr 1.1fr 36px;
   gap: var(--space-3);
   align-items: center;
   padding: var(--space-3) 0;
@@ -52,13 +52,27 @@
 }
 
 @keyframes rowSlideIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes rowFadeOut {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-8px); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }
 
 .sale-item-row .form-control,
@@ -326,7 +340,9 @@
 }
 
 @media (max-width: 560px) {
-  .modal-grid { grid-template-columns: 1fr; }
+  .modal-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ─── Modal Header Accent Bar ───────────────────────────────────────────── */
@@ -388,12 +404,20 @@
 }
 
 @keyframes errorSlideIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─── Button Loading State ──────────────────────────────────────────────── */
-.btn-label, .btn-spinner {
+.btn-label,
+.btn-spinner {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -402,7 +426,7 @@
 .spinner-sm {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
   border-top-color: #fff;
   animation: spin 0.7s linear infinite;
@@ -411,8 +435,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .is-spinning {

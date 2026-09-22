@@ -34,3 +34,5 @@ class SaleItemDBModel(Base):
     quantity = Column(Integer, nullable=False)
 
     selling_price = Column(Float, nullable=False)
+
+    cost_price = Column(Float, nullable= False)

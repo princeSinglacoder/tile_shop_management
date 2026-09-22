@@ -38,7 +38,21 @@ def create_sale(tempSale: TempSale, db: Session):
         if current_stock < item.quantity:
             raise HTTPException(
                 status_code=400,
-                detail=f"Not enough stock for product '{product.product_name}'. Available: {current_stock}, Requested: {item.quantity}"
+                detail=(
+                    f"Not enough stock for product '{product.product_name}'. "
+                    f"Available: {current_stock}, Requested: {item.quantity}"
+                )
+            )
+        if item.quantity <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Quantity must be greater than 0"
+            )
+
+        if item.selling_price <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Selling price must be greater than 0"
             )
 
         products.append((item, product))
@@ -46,11 +60,11 @@ def create_sale(tempSale: TempSale, db: Session):
     # Generate one sale_id for the entire sale
     sale_id = str(uuid.uuid4())
 
-    # Get selling_price from DB and calculate total_amount in the backend
+    # Calculate total using the selling price enter by admin
     total_amount = 0.0
+
     for item, product in products:
-        selling_price = product.product_selling_price or 0.0
-        total_amount += item.quantity * selling_price
+        total_amount += item.quantity * item.selling_price
 
     # Build ORM objects (not yet committed)
     sale = SaleDBModel(
@@ -62,7 +76,8 @@ def create_sale(tempSale: TempSale, db: Session):
 
     sale_items = []
     for item, product in products:
-        selling_price = product.product_selling_price or 0.0
+        # Snapshot the current average purchase price
+        cost_price = product.product_purchase_price if product.product_purchase_price is not None else 0.0
 
         sale_items.append(
             SaleItemDBModel(
@@ -70,7 +85,8 @@ def create_sale(tempSale: TempSale, db: Session):
                 sale_id=sale_id,
                 product_id=item.product_id,
                 quantity=item.quantity,
-                selling_price=selling_price,
+                selling_price=item.selling_price,
+                cost_price=cost_price
             )
         )
         # Decrease stock (column is now Integer)
@@ -120,6 +136,7 @@ def get_all_sales(db: Session):
                 "product_name": prod.product_name if prod else "Unknown",
                 "quantity": it.quantity,
                 "selling_price": it.selling_price,
+                "cost_price": it.cost_price,
             })
 
         result.append({

@@ -188,8 +188,8 @@ const Sales = (() => {
           <h4 class="empty-title">${isFiltered ? "No Matching Sales" : "No Sales Recorded Yet"}</h4>
           <p class="empty-description">
             ${isFiltered
-              ? "No sales matched your search query. Try clearing the search filter."
-              : "Record your first customer sale order to track dispatched tile stock and revenue."}
+          ? "No sales matched your search query. Try clearing the search filter."
+          : "Record your first customer sale order to track dispatched tile stock and revenue."}
           </p>
         </div>
       `;
@@ -234,10 +234,10 @@ const Sales = (() => {
               </thead>
               <tbody>
                 ${(sale.items || []).map((item) => {
-                  const qty = parseInt(item.quantity, 10) || 0;
-                  const price = parseFloat(item.selling_price) || 0;
-                  const lineTotal = qty * price;
-                  return `
+        const qty = parseInt(item.quantity, 10) || 0;
+        const price = parseFloat(item.selling_price) || 0;
+        const lineTotal = qty * price;
+        return `
                     <tr>
                       <td class="item-product-name">${UI.escapeHTML(item.product_name || item.product_id)}</td>
                       <td style="text-align: center;"><span class="badge badge-neutral">${qty} box${qty !== 1 ? "es" : ""}</span></td>
@@ -245,7 +245,7 @@ const Sales = (() => {
                       <td style="text-align: right; font-weight: 700; color: var(--text-main);">${UI.formatCurrency(lineTotal)}</td>
                     </tr>
                   `;
-                }).join("")}
+      }).join("")}
               </tbody>
             </table>
           </div>
@@ -323,9 +323,9 @@ const Sales = (() => {
   const buildProductOptionsHtml = () => {
     return productsList.map((p) => {
       const stock = Math.floor(parseFloat(p.product_stock_quantity || "0")) || 0;
-      const price = parseFloat(p.product_selling_price || "0") || 0;
+      const avgPP = parseFloat(p.product_purchase_price || "0") || 0;
       const stockText = stock > 0 ? `${stock} in stock` : "0 in stock (Out of Stock)";
-      return `<option value="${UI.escapeHTML(p.product_id)}" data-stock="${stock}" data-price="${price}">
+      return `<option value="${UI.escapeHTML(p.product_id)}" data-stock="${stock}" data-avg-pp="${avgPP}">
         ${UI.escapeHTML(p.product_name)} — ${UI.escapeHTML(p.product_brand || "")} [${stockText}]
       </option>`;
     }).join("");
@@ -352,6 +352,7 @@ const Sales = (() => {
         </select>
       </div>
       <div class="row-info" id="rowStock_${currentRow}">—</div>
+      <div class="row-info" id="rowAvgPP_${currentRow}">—</div>
       <div>
         <input
           type="number"
@@ -363,7 +364,17 @@ const Sales = (() => {
           aria-label="Quantity in boxes"
         >
       </div>
-      <div class="row-info" id="rowPrice_${currentRow}">—</div>
+      <div>
+        <input
+          type="number"
+          class="form-control row-price"
+          placeholder="₹ Price"
+          min="0.01"
+          step="0.01"
+          data-row="${currentRow}"
+          aria-label="Selling Price per box"
+        >
+      </div>
       <div class="row-total" id="rowTotal_${currentRow}">₹ 0.00</div>
       <button type="button" class="btn-remove-row" onclick="Sales.removeItemRow('${rowId}')" title="Remove line item" aria-label="Remove item">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -378,6 +389,7 @@ const Sales = (() => {
     // Event listeners
     const productSelect = row.querySelector(".row-product");
     const qtyInput = row.querySelector(".row-quantity");
+    const priceInput = row.querySelector(".row-price");
 
     if (productSelect) {
       productSelect.addEventListener("change", () => {
@@ -388,6 +400,12 @@ const Sales = (() => {
     if (qtyInput) {
       qtyInput.addEventListener("input", () => {
         handleQuantityChange(row, currentRow);
+      });
+    }
+
+    if (priceInput) {
+      priceInput.addEventListener("input", () => {
+        handlePriceChange(row, currentRow);
       });
     }
   };
@@ -501,28 +519,52 @@ const Sales = (() => {
     updateRowTotal(rowIndex);
   };
 
-  // ─── Row Info (Stock Badge & Unit Price) ─────────────────────────────────────
+  const handlePriceChange = (row, rowIndex) => {
+    const priceInput = row.querySelector(".row-price");
+    if (!priceInput) return;
+
+    const rawVal = priceInput.value.trim();
+    showFormServerError("saleServerError", "");
+
+    if (!rawVal) {
+      priceInput.classList.remove("is-invalid");
+      updateRowTotal(rowIndex);
+      return;
+    }
+
+    const price = parseFloat(rawVal);
+    if (isNaN(price) || price <= 0) {
+      priceInput.classList.add("is-invalid");
+      showFormServerError("saleServerError", "Selling price must be greater than 0.");
+    } else {
+      priceInput.classList.remove("is-invalid");
+    }
+
+    updateRowTotal(rowIndex);
+  };
+
+  // ─── Row Info (Stock Badge & Avg Purchase Price) ───────────────────────────
   const updateRowInfo = (rowIndex) => {
     const row = document.querySelector(`[data-row-id="${rowIndex}"]`);
     if (!row) return;
 
     const productSelect = row.querySelector(".row-product");
     const stockEl = $(`rowStock_${rowIndex}`);
-    const priceEl = $(`rowPrice_${rowIndex}`);
-    const qtyInput = row.querySelector(".row-quantity");
+    const avgPPEl = $(`rowAvgPP_${rowIndex}`);
 
     if (!productSelect) return;
 
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const selectedId = productSelect.value;
+    const prod = productsList.find((p) => p.product_id === selectedId);
 
-    if (!selectedOption || !selectedOption.value) {
+    if (!prod) {
       if (stockEl) stockEl.textContent = "—";
-      if (priceEl) priceEl.textContent = "—";
+      if (avgPPEl) avgPPEl.textContent = "—";
       return;
     }
 
-    const stock = Math.floor(parseFloat(selectedOption.dataset.stock || "0")) || 0;
-    const price = parseFloat(selectedOption.dataset.price || "0") || 0;
+    const stock = Math.floor(parseFloat(prod.product_stock_quantity || "0")) || 0;
+    const avgPP = parseFloat(prod.product_purchase_price || "0") || 0;
 
     // Available Stock Badge
     if (stockEl) {
@@ -540,26 +582,17 @@ const Sales = (() => {
       stockEl.innerHTML = `<span class="stock-info-badge ${badgeClass}">${text}</span>`;
     }
 
-    // Product Selling Price (Read-only from Backend)
-    if (priceEl) {
-      priceEl.textContent = UI.formatCurrency(price);
+    // Current Average Purchase Price
+    if (avgPPEl) {
+      avgPPEl.innerHTML = `<span class="stock-info-badge" style="background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 700;">${UI.formatCurrency(avgPP)}</span>`;
     }
-  };
-
-  const getRowPrice = (row) => {
-    const productSelect = row.querySelector(".row-product");
-    if (!productSelect) return 0;
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return 0;
-    return parseFloat(selectedOption.dataset.price || "0") || 0;
   };
 
   const getRowStock = (row) => {
     const productSelect = row.querySelector(".row-product");
-    if (!productSelect) return 0;
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return 0;
-    return Math.floor(parseFloat(selectedOption.dataset.stock || "0")) || 0;
+    if (!productSelect || !productSelect.value) return 0;
+    const prod = productsList.find((p) => p.product_id === productSelect.value);
+    return prod ? (Math.floor(parseFloat(prod.product_stock_quantity || "0")) || 0) : 0;
   };
 
   // ─── Totals Calculation ──────────────────────────────────────────────────────
@@ -571,8 +604,8 @@ const Sales = (() => {
     }
 
     const qty = parseInt(row.querySelector(".row-quantity")?.value, 10) || 0;
-    const price = getRowPrice(row);
-    const lineTotal = (qty > 0 ? qty : 0) * price;
+    const price = parseFloat(row.querySelector(".row-price")?.value) || 0;
+    const lineTotal = (qty > 0 && price > 0) ? (qty * price) : 0;
 
     const totalEl = $(`rowTotal_${rowIndex}`);
     if (totalEl) {
@@ -590,8 +623,8 @@ const Sales = (() => {
     let total = 0;
     container.querySelectorAll(".sale-item-row").forEach((row) => {
       const qty = parseInt(row.querySelector(".row-quantity")?.value, 10) || 0;
-      const price = getRowPrice(row);
-      if (qty > 0) {
+      const price = parseFloat(row.querySelector(".row-price")?.value) || 0;
+      if (qty > 0 && price > 0) {
         total += qty * price;
       }
     });
@@ -642,15 +675,19 @@ const Sales = (() => {
       const rowNum = idx + 1;
       const productSelect = row.querySelector(".row-product");
       const qtyInput = row.querySelector(".row-quantity");
+      const priceInput = row.querySelector(".row-price");
 
       const productId = productSelect?.value || "";
       const rawQty = (qtyInput?.value || "").trim();
+      const rawPrice = (priceInput?.value || "").trim();
       const quantity = parseInt(rawQty, 10);
+      const sellingPrice = parseFloat(rawPrice);
       const stock = getRowStock(row);
 
       // Reset state
       productSelect?.classList.remove("is-invalid");
       qtyInput?.classList.remove("is-invalid");
+      priceInput?.classList.remove("is-invalid");
 
       // 1. Check empty product
       if (!productId) {
@@ -686,10 +723,18 @@ const Sales = (() => {
         }
       }
 
-      if (productId && quantity > 0 && quantity <= stock) {
+      // 5. Check selling price
+      if (!rawPrice || isNaN(sellingPrice) || sellingPrice <= 0) {
+        priceInput?.classList.add("is-invalid");
+        if (!rowErrorMsg) rowErrorMsg = `Row ${rowNum}: Please enter a valid selling price greater than 0.`;
+        valid = false;
+      }
+
+      if (productId && quantity > 0 && quantity <= stock && sellingPrice > 0) {
         items.push({
           product_id: productId,
           quantity: quantity,
+          selling_price: sellingPrice,
         });
       }
     });
