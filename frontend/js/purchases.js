@@ -588,12 +588,12 @@ const Purchases = (() => {
     if (!name) { setFieldError("err_inline_name", "Tile name is required."); valid = false; }
     if (!brand) { setFieldError("err_inline_brand", "Brand is required."); valid = false; }
     if (!size) { setFieldError("err_inline_size", "Size is required."); valid = false; }
-    if (isNaN(price) || price <= 0) { setFieldError("err_inline_price", "Price must be > ₹ 0."); valid = false; }
+    if (isNaN(price) || price <= 0) { setFieldError("err_inline_price", "Purchase price must be > ₹ 0."); valid = false; }
     if (isNaN(stock) || stock < 0) { setFieldError("err_inline_stock", "Stock cannot be negative."); valid = false; }
 
     if (!valid) return;
 
-    const payload = { name, brand, size, selling_price: price, stock_quantity: stock };
+    const payload = { name, brand, size, purchase_price: price, stock_quantity: stock };
 
     setButtonLoading("inlineAddSubmitBtn", true);
 

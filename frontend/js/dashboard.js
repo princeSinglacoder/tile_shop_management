@@ -21,10 +21,10 @@ const Dashboard = (() => {
       console.warn("Using sample dashboard statistics:", err);
       // Demo metrics
       renderDashboard([
-        { product_id: "1", product_name: "Carrara White Glossy Vitrified", product_brand: "Kajaria", product_size: "600x1200 mm", product_selling_price: "1250", product_stock_quantity: "85" },
-        { product_id: "2", product_name: "Nero Marquina Matte Porcelain", product_brand: "Somany", product_size: "800x1600 mm", product_selling_price: "2450", product_stock_quantity: "14" },
-        { product_id: "3", product_name: "Travertine Beige Exterior Paver", product_brand: "Orientbell", product_size: "400x400 mm", product_selling_price: "680", product_stock_quantity: "0" },
-        { product_id: "4", product_name: "Cementum Gris Rustic Floor Tile", product_brand: "Kajaria", product_size: "600x600 mm", product_selling_price: "890", product_stock_quantity: "8" }
+        { product_id: "1", product_name: "Carrara White Glossy Vitrified", product_brand: "Kajaria", product_size: "600x1200 mm", product_purchase_price: "580", product_stock_quantity: "85" },
+        { product_id: "2", product_name: "Nero Marquina Matte Porcelain", product_brand: "Somany", product_size: "800x1600 mm", product_purchase_price: "1150", product_stock_quantity: "14" },
+        { product_id: "3", product_name: "Travertine Beige Exterior Paver", product_brand: "Orientbell", product_size: "400x400 mm", product_purchase_price: "340", product_stock_quantity: "0" },
+        { product_id: "4", product_name: "Cementum Gris Rustic Floor Tile", product_brand: "Kajaria", product_size: "600x600 mm", product_purchase_price: "420", product_stock_quantity: "8" }
       ]);
     }
   };
@@ -34,6 +34,7 @@ const Dashboard = (() => {
     const totalBrandsEl = document.getElementById("dashTotalBrands");
     const lowStockCountEl = document.getElementById("dashLowStockCount");
     const outOfStockCountEl = document.getElementById("dashOutOfStockCount");
+    const inventoryValEl = document.getElementById("dashInventoryValue");
 
     const total = products.length;
     const uniqueBrands = new Set(products.map(p => (p.product_brand || "").trim().toLowerCase())).size;
@@ -42,11 +43,17 @@ const Dashboard = (() => {
       return q > 0 && q <= 15;
     });
     const outOfStock = products.filter(p => (parseInt(p.product_stock_quantity, 10) || 0) <= 0);
+    const purchaseInventoryValue = products.reduce((acc, p) => {
+      const stock = parseInt(p.product_stock_quantity, 10) || 0;
+      const avgPP = parseFloat(p.product_purchase_price) || 0;
+      return acc + (stock * avgPP);
+    }, 0);
 
     if (totalTilesEl) totalTilesEl.textContent = total;
     if (totalBrandsEl) totalBrandsEl.textContent = uniqueBrands;
     if (lowStockCountEl) lowStockCountEl.textContent = lowStock.length;
     if (outOfStockCountEl) outOfStockCountEl.textContent = outOfStock.length;
+    if (inventoryValEl) inventoryValEl.textContent = UI.formatCurrency(purchaseInventoryValue);
 
     // Render Recent Products Preview Table
     const recentTbody = document.getElementById("recentProductsTbody");
@@ -62,7 +69,7 @@ const Dashboard = (() => {
               <div style="font-size: 0.75rem; color: var(--text-muted);">${UI.escapeHTML(p.product_brand)}</div>
             </td>
             <td><span class="badge badge-neutral">${UI.escapeHTML(p.product_size)}</span></td>
-            <td><strong style="color: var(--text-main);">${UI.formatCurrency(p.product_selling_price)}</strong></td>
+            <td><strong style="color: var(--text-main);">${UI.formatCurrency(p.product_purchase_price)}</strong></td>
             <td>
               <span class="badge ${parseInt(p.product_stock_quantity, 10) > 15 ? 'badge-success' : parseInt(p.product_stock_quantity, 10) > 0 ? 'badge-warning' : 'badge-danger'}">
                 ${p.product_stock_quantity} in stock

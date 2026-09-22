@@ -5,8 +5,8 @@
  *
  * Backend endpoints:
  *  GET    /product/all              — list all products
- *  POST   /product/add              — add product { name, brand, size, selling_price, stock_quantity }
- *  PUT    /product/edit/{id}        — update product { name?, brand?, size?, selling_price? }
+ *  POST   /product/add              — add product { name, brand, size, purchase_price, stock_quantity }
+ *  PUT    /product/edit/{id}        — update product { name?, brand?, size? }
  *  DELETE /product/delete/{id}      — delete product
  *
  * Design rules:
@@ -184,8 +184,8 @@ const Products = (() => {
     });
 
     result.sort((a, b) => {
-      const priceA = parseFloat(a.product_selling_price)  || 0;
-      const priceB = parseFloat(b.product_selling_price)  || 0;
+      const priceA = parseFloat(a.product_purchase_price) || 0;
+      const priceB = parseFloat(b.product_purchase_price) || 0;
       const stockA = parseInt(a.product_stock_quantity, 10) || 0;
       const stockB = parseInt(b.product_stock_quantity, 10) || 0;
       const nameA  = (a.product_name || "").toLowerCase();
@@ -269,7 +269,7 @@ const Products = (() => {
           </span>
         </td>
         <td>
-          <span class="price-tag">${UI.formatCurrency(product.product_selling_price)}</span>
+          <span class="price-tag">${UI.formatCurrency(product.product_purchase_price)}</span>
         </td>
         <td>
           <div class="stock-cell">
@@ -391,7 +391,7 @@ const Products = (() => {
       return q > 0 && q <= 15;
     }).length;
     const totalValue = productsList.reduce((acc, p) => {
-      const price = parseFloat(p.product_selling_price)   || 0;
+      const price = parseFloat(p.product_purchase_price) || 0;
       const stock = parseInt(p.product_stock_quantity, 10) || 0;
       return acc + price * stock;
     }, 0);
@@ -432,10 +432,10 @@ const Products = (() => {
     if (!name)                     { setFieldError("err_add_name",  "Tile name is required."); valid = false; }
     if (!brand)                    { setFieldError("err_add_brand", "Brand is required.");       valid = false; }
     if (!size)                     { setFieldError("err_add_size",  "Size is required.");        valid = false; }
-    if (isNaN(price) || price <= 0){ setFieldError("err_add_price", "Price must be greater than ₹ 0."); valid = false; }
+    if (isNaN(price) || price <= 0){ setFieldError("err_add_price", "Purchase price must be greater than ₹ 0."); valid = false; }
     if (isNaN(stock) || stock < 0) { setFieldError("err_add_stock", "Stock cannot be negative."); valid = false; }
 
-    return valid ? { name, brand, size, selling_price: price, stock_quantity: stock } : null;
+    return valid ? { name, brand, size, purchase_price: price, stock_quantity: stock } : null;
   };
 
   const handleAddSubmit = async (e) => {
@@ -530,15 +530,17 @@ const Products = (() => {
     setVal("edit_name",  product.product_name  || "");
     setVal("edit_brand", product.product_brand || "");
     setVal("edit_size",  product.product_size  || "");
-    setVal("edit_price", parseFloat(product.product_selling_price) || "");
+
+    const priceEl = $("editPurchasePriceDisplay");
+    if (priceEl) priceEl.textContent = UI.formatCurrency(product.product_purchase_price);
 
     const stockEl = $("editStockDisplay");
     if (stockEl) stockEl.textContent = product.product_stock_quantity ?? "0";
 
     // Clear errors
-    clearFormErrors(["err_edit_name", "err_edit_brand", "err_edit_size", "err_edit_price"]);
+    clearFormErrors(["err_edit_name", "err_edit_brand", "err_edit_size"]);
     showFormServerError("editServerError", "");
-    ["edit_name", "edit_brand", "edit_size", "edit_price"].forEach((id) => {
+    ["edit_name", "edit_brand", "edit_size"].forEach((id) => {
       const el = $(id);
       if (el) el.classList.remove("is-invalid");
     });
@@ -550,13 +552,12 @@ const Products = (() => {
     const name  = ($("edit_name")  || {}).value?.trim() || "";
     const brand = ($("edit_brand") || {}).value?.trim() || "";
     const size  = ($("edit_size")  || {}).value?.trim() || "";
-    const price = parseFloat(($("edit_price") || {}).value);
 
     let valid = true;
-    clearFormErrors(["err_edit_name", "err_edit_brand", "err_edit_size", "err_edit_price"]);
+    clearFormErrors(["err_edit_name", "err_edit_brand", "err_edit_size"]);
 
     // At least one field should be filled for an update
-    if (!name && !brand && !size && isNaN(price)) {
+    if (!name && !brand && !size) {
       showFormServerError("editServerError", "Please update at least one field.");
       return null;
     }
@@ -564,16 +565,14 @@ const Products = (() => {
     if (name.length > 100)  { setFieldError("err_edit_name",  "Name too long (max 100 chars)."); valid = false; }
     if (brand.length > 100) { setFieldError("err_edit_brand", "Brand too long (max 100 chars)."); valid = false; }
     if (size.length > 30)   { setFieldError("err_edit_size",  "Size too long (max 30 chars)."); valid = false; }
-    if (!isNaN(price) && price <= 0) { setFieldError("err_edit_price", "Price must be greater than ₹ 0."); valid = false; }
 
     if (!valid) return null;
 
     // Build partial payload (only changed/filled fields)
     const payload = {};
-    if (name)               payload.name          = name;
-    if (brand)              payload.brand         = brand;
-    if (size)               payload.size          = size;
-    if (!isNaN(price) && price > 0) payload.selling_price = price;
+    if (name)  payload.name  = name;
+    if (brand) payload.brand = brand;
+    if (size)  payload.size  = size;
 
     return payload;
   };
@@ -648,10 +647,9 @@ const Products = (() => {
         const orig = productsList[idx];
         productsList[idx] = {
           ...orig,
-          product_name:          payload.name          ?? orig.product_name,
-          product_brand:         payload.brand         ?? orig.product_brand,
-          product_size:          payload.size          ?? orig.product_size,
-          product_selling_price: payload.selling_price != null ? String(payload.selling_price) : orig.product_selling_price,
+          product_name:  payload.name  ?? orig.product_name,
+          product_brand: payload.brand ?? orig.product_brand,
+          product_size:  payload.size  ?? orig.product_size,
         };
       }
 

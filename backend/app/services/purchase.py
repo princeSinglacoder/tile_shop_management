@@ -49,7 +49,7 @@ def create_purchase(tempPurchase: TempPurchase, db: Session):
     )
 
     purchase_items = []
-    for item, product in products:
+    for item, product in products:  
         purchase_items.append(
             PurchaseItemDBModel(
                 purchase_item_id=str(uuid.uuid4()),
