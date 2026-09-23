@@ -135,3 +135,92 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
+
+/* Outstanding Customers table */
+.outstanding-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.outstanding-table thead th {
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.outstanding-table thead th:last-child {
+  text-align: right;
+}
+
+.outstanding-table tbody td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-light);
+  word-break: break-word;
+}
+
+.outstanding-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.outstanding-table th:nth-child(1),
+.outstanding-table td:nth-child(1) {
+  width: 40%;
+}
+
+.outstanding-table th:nth-child(2),
+.outstanding-table td:nth-child(2) {
+  width: 35%;
+}
+
+.outstanding-table th:nth-child(3),
+.outstanding-table td:nth-child(3) {
+  width: 25%;
+  text-align: right;
+}
+
+.outstanding-customer-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.outstanding-phone {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.outstanding-amount-badge {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: #fff1f2;
+  color: #e11d48;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .outstanding-table th:nth-child(1),
+  .outstanding-table td:nth-child(1),
+  .outstanding-table th:nth-child(2),
+  .outstanding-table td:nth-child(2),
+  .outstanding-table th:nth-child(3),
+  .outstanding-table td:nth-child(3) {
+    width: auto;
+  }
+
+  .outstanding-table thead th,
+  .outstanding-table tbody td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+

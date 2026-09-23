@@ -966,16 +966,14 @@ const Sales = (() => {
         return;
       }
 
-      // Success
+      // Success — add created sale to local list (no /sales/all or /product/all refetch)
       UI.showToast(
         "Sale Recorded",
         `Sale to "${customerName}" recorded successfully. Total: ${UI.formatCurrency(result.total_amount)}`,
         "success"
       );
       UI.closeModal("createSaleModal");
-
-      // Simultaneously refresh sales history and product catalog (for stock sync)
-      await Promise.all([loadSales(), loadProducts()]);
+      applyCreatedSale(result);
 
     } catch (err) {
       console.error("[Sales] handleSaleSubmit error:", err);
@@ -983,6 +981,29 @@ const Sales = (() => {
     } finally {
       setButtonLoading("saleSubmitBtn", false);
     }
+  };
+
+  /**
+   * Prepend a newly created sale from POST /sales/create response into local state.
+   */
+  const applyCreatedSale = (result) => {
+    if (!result || !result.sale_id) return;
+
+    const sale = {
+      sale_id: result.sale_id,
+      customer_name: result.customer_name || "",
+      phone_number: result.phone_number || "",
+      date: result.date || "",
+      total_amount: result.total_amount || 0,
+      cash_amount: result.cash_amount || 0,
+      upi_amount: result.upi_amount || 0,
+      outstanding_amount: result.outstanding_amount || 0,
+      items: Array.isArray(result.items) ? result.items : [],
+    };
+
+    salesList.unshift(sale);
+    applySearchFilter();
+    updateStats();
   };
 
   // ─── Date Formatting ────────────────────────────────────────────────────────
@@ -1149,14 +1170,14 @@ const Sales = (() => {
         return;
       }
 
-      // Success
+      // Success — patch only this sale from the payment response (no /sales/all refetch)
       UI.showToast(
         "Payment Recorded",
         `Payment of ${UI.formatCurrency(amount)} recorded. Outstanding: ${UI.formatCurrency(result.outstanding_amount)}`,
         "success"
       );
       UI.closeModal("makePaymentModal");
-      await loadSales();
+      applyPaymentResult(result.sale_id || saleId, result);
 
     } catch (err) {
       console.error("[Sales] handlePaymentSubmit error:", err);
@@ -1166,10 +1187,36 @@ const Sales = (() => {
     }
   };
 
+  /**
+   * Update a single sale in local state from POST /sales/{id}/payment response.
+   * Recalculates Cash / UPI / Udhaari on that card and hides Pay Due when outstanding is 0.
+   */
+  const applyPaymentResult = (saleId, result) => {
+    const idx = salesList.findIndex((s) => s.sale_id === saleId);
+    if (idx === -1) return;
+
+    const updated = { ...salesList[idx] };
+    if (result.cash_amount !== undefined && result.cash_amount !== null) {
+      updated.cash_amount = result.cash_amount;
+    }
+    if (result.upi_amount !== undefined && result.upi_amount !== null) {
+      updated.upi_amount = result.upi_amount;
+    }
+    if (result.outstanding_amount !== undefined && result.outstanding_amount !== null) {
+      updated.outstanding_amount = result.outstanding_amount;
+    }
+
+    salesList[idx] = updated;
+    applySearchFilter();
+    updateStats();
+  };
+
   // ─── Initialization ─────────────────────────────────────────────────────────
   const init = async () => {
     setupEventListeners();
-    await Promise.all([loadProducts(), loadSales()]);
+    // Only load sales history on page load/refresh.
+    // product/all is fetched when Create Sale is opened.
+    await loadSales();
   };
 
   if (document.readyState === "loading") {

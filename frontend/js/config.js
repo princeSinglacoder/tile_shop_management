@@ -27,6 +27,7 @@ const CONFIG = {
     // Sales Operations
     SALE_CREATE: "/sales/create",
     SALES_ALL: "/sales/all",
+    SALES_OUTSTANDING: "/sales/outstanding",
     SALE_PAYMENT: (saleId) => `/sales/${encodeURIComponent(saleId)}/payment`,
   },
 

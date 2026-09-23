@@ -532,16 +532,14 @@ const Purchases = (() => {
         return;
       }
 
-      // Success
+      // Success — add created purchase to local list (no /purchases/all or /product/all refetch)
       UI.showToast(
         "Purchase Recorded",
         `Order from "${supplierName}" saved. Total: ${UI.formatCurrency(result.total_amount)}`,
         "success"
       );
       UI.closeModal("createPurchaseModal");
-
-      // Reload purchases and products (stock updated)
-      await Promise.all([loadPurchases(), loadProducts()]);
+      applyCreatedPurchase(result);
 
     } catch (err) {
       console.error("[Purchases] handlePurchaseSubmit error:", err);
@@ -549,6 +547,25 @@ const Purchases = (() => {
     } finally {
       setButtonLoading("purchaseSubmitBtn", false);
     }
+  };
+
+  /**
+   * Prepend a newly created purchase from POST /purchases/create response into local state.
+   */
+  const applyCreatedPurchase = (result) => {
+    if (!result || !result.purchase_id) return;
+
+    const purchase = {
+      purchase_id: result.purchase_id,
+      supplier_name: result.supplier_name || "",
+      date: result.date || "",
+      total_amount: result.total_amount || 0,
+      items: Array.isArray(result.items) ? result.items : [],
+    };
+
+    purchasesList.unshift(purchase);
+    renderPurchaseHistory();
+    updateStats();
   };
 
   // ─── Inline Add Product ──────────────────────────────────────────────────────
@@ -701,7 +718,9 @@ const Purchases = (() => {
   // ─── Init ────────────────────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", async () => {
     setupEventListeners();
-    await Promise.all([loadProducts(), loadPurchases()]);
+    // Only load purchases on page load/refresh.
+    // product/all is fetched when Create Purchase is opened.
+    await loadPurchases();
   });
 
   // ─── Public API ──────────────────────────────────────────────────────────────

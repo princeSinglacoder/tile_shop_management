@@ -136,7 +136,24 @@ def create_sale(tempSale: TempSale, db: Session):
     return {
         "message": "Sale created successfully",
         "sale_id": sale.sale_id,
+        "customer_name": sale.customer_name,
+        "phone_number": sale.phone_number or "",
+        "date": str(sale.date) if sale.date else "",
         "total_amount": round(sale.total_amount, 2),
+        "cash_amount": round(sale.cash_amount, 2),
+        "upi_amount": round(sale.upi_amount, 2),
+        "outstanding_amount": round(sale.outstanding_amount, 2),
+        "items": [
+            {
+                "sale_item_id": si.sale_item_id,
+                "product_id": si.product_id,
+                "product_name": product.product_name,
+                "quantity": si.quantity,
+                "selling_price": si.selling_price,
+                "cost_price": si.cost_price,
+            }
+            for si, (item, product) in zip(sale_items, products)
+        ],
     }
 
 
@@ -174,6 +191,24 @@ def get_all_sales(db: Session):
             "upi_amount": round(sale.upi_amount, 2) if sale.upi_amount is not None else 0.0,
             "outstanding_amount": round(sale.outstanding_amount, 2) if sale.outstanding_amount is not None else 0.0,
             "items": serialized_items
+        })
+
+    return result
+
+
+def get_outstanding_sales(db: Session):
+    sales = db.query(SaleDBModel).filter(
+        SaleDBModel.outstanding_amount > 0
+    ).order_by(SaleDBModel.outstanding_amount.desc()).all()
+
+    result = []
+
+    for sale in sales:
+        result.append({
+            "sale_id": sale.sale_id,
+            "customer_name": sale.customer_name,
+            "phone_number": sale.phone_number or "",
+            "outstanding_amount": round(sale.outstanding_amount, 2) if sale.outstanding_amount is not None else 0.0,
         })
 
     return result

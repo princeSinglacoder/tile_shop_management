@@ -1,7 +1,7 @@
 /**
  * Dashboard Module
  * Displays Overview Statistics, Low Stock Alerts, Recent Products,
- * and Outstanding Customers (Udhaari) from /sales/all.
+ * and Outstanding Customers (Udhaari) from /sales/outstanding.
  */
 
 const Dashboard = (() => {
@@ -9,24 +9,24 @@ const Dashboard = (() => {
   // ─── Load Both Data Sources in Parallel ──────────────────────────────────────
   const loadDashboardData = async () => {
     try {
-      const [productsRes, salesRes] = await Promise.all([
+      const [productsRes, outstandingRes] = await Promise.all([
         fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.PRODUCTS_ALL}`, {
           method: "GET",
           headers: { "Accept": "application/json" },
           credentials: "include",
         }),
-        fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_ALL}`, {
+        fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_OUTSTANDING}`, {
           method: "GET",
           headers: { "Accept": "application/json" },
           credentials: "include",
         }),
       ]);
 
-      const products = productsRes.ok ? await productsRes.json() : [];
-      const sales    = salesRes.ok    ? await salesRes.json()    : [];
+      const products    = productsRes.ok    ? await productsRes.json()    : [];
+      const outstanding = outstandingRes.ok ? await outstandingRes.json() : [];
 
-      if (Array.isArray(products)) renderProductMetrics(products);
-      if (Array.isArray(sales))    renderOutstandingCustomers(sales);
+      if (Array.isArray(products))    renderProductMetrics(products);
+      if (Array.isArray(outstanding)) renderOutstandingCustomers(outstanding);
 
     } catch (err) {
       console.warn("[Dashboard] Failed to load data:", err);
@@ -115,15 +115,10 @@ const Dashboard = (() => {
   };
 
   // ─── Render Outstanding Customers (Udhaari) ───────────────────────────────────
-  const renderOutstandingCustomers = (sales) => {
+  const renderOutstandingCustomers = (outstanding) => {
     const container  = document.getElementById("outstandingCustomerList");
     const countBadge = document.getElementById("outstandingCount");
     if (!container) return;
-
-    // Filter: only sales where outstanding_amount > 0; sort highest due first
-    const outstanding = sales
-      .filter(s => parseFloat(s.outstanding_amount || 0) > 0)
-      .sort((a, b) => parseFloat(b.outstanding_amount) - parseFloat(a.outstanding_amount));
 
     if (countBadge) {
       if (outstanding.length > 0) {
@@ -156,9 +151,7 @@ const Dashboard = (() => {
           <tr>
             <th>Customer Name</th>
             <th>Phone Number</th>
-            <th>Sale Date</th>
-            <th style="text-align: right;">Outstanding Due</th>
-            <th style="text-align: right;">Total Billed</th>
+            <th style="text-align: right;">Outstanding Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -166,12 +159,8 @@ const Dashboard = (() => {
             <tr class="outstanding-row">
               <td class="outstanding-customer-name">${UI.escapeHTML(s.customer_name || "—")}</td>
               <td class="outstanding-phone">${s.phone_number ? UI.escapeHTML(s.phone_number) : "<span style='color:var(--text-light);'>—</span>"}</td>
-              <td class="outstanding-date">${formatDate(s.date)}</td>
               <td style="text-align: right;">
                 <span class="outstanding-amount-badge">${UI.formatCurrency(s.outstanding_amount)}</span>
-              </td>
-              <td style="text-align: right; color: var(--text-muted); font-size: var(--font-size-xs);">
-                ${UI.formatCurrency(s.total_amount)}
               </td>
             </tr>
           `).join("")}
@@ -184,19 +173,6 @@ const Dashboard = (() => {
         </strong>
       </div>
     `;
-  };
-
-  // ─── Date Helper ─────────────────────────────────────────────────────────────
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    try {
-      const parts = dateStr.split("-");
-      if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-        return d.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
-      }
-      return dateStr;
-    } catch { return dateStr; }
   };
 
   // ─── Init ─────────────────────────────────────────────────────────────────────

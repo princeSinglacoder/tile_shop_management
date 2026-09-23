@@ -97,7 +97,19 @@ def create_purchase(tempPurchase: TempPurchase, db: Session):
     return {
         "message": "Purchase created successfully",
         "purchase_id": purchase.purchase_id,
+        "supplier_name": purchase.supplier_name,
+        "date": str(purchase.date) if purchase.date else "",
         "total_amount": round(purchase.total_amount, 2),
+        "items": [
+            {
+                "purchase_item_id": pi.purchase_item_id,
+                "product_id": pi.product_id,
+                "product_name": product.product_name,
+                "quantity": pi.quantity,
+                "purchase_price": pi.purchase_price,
+            }
+            for pi, (item, product) in zip(purchase_items, products)
+        ],
     }
 
 
