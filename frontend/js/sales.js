@@ -210,11 +210,17 @@ const Sales = (() => {
       const itemCount = sale.items ? sale.items.length : 0;
       const totalBoxes = (sale.items || []).reduce((acc, it) => acc + (parseInt(it.quantity, 10) || 0), 0);
       const outstanding = parseFloat(sale.outstanding_amount || 0) || 0;
+      const refundDue = parseFloat(sale.refund_amount || 0) || 0;
+      const hasReturnable = (sale.items || []).some((it) => (parseInt(it.quantity, 10) || 0) > 0);
       const phoneStr = sale.phone_number ? ` • 📞 ${UI.escapeHTML(sale.phone_number)}` : "";
 
       const paymentBadge = outstanding > 0
         ? `<span class="badge-due">Due: ${UI.formatCurrency(outstanding)}</span>`
         : `<span class="badge-paid">✓ Fully Paid</span>`;
+
+      const refundBadge = refundDue > 0
+        ? `<span class="badge-refund">Refund: ${UI.formatCurrency(refundDue)}</span>`
+        : "";
 
       const payDueBtn = outstanding > 0
         ? `
@@ -233,6 +239,36 @@ const Sales = (() => {
         `
         : "";
 
+      const returnBtn = hasReturnable
+        ? `
+          <button
+            type="button"
+            class="btn-return"
+            onclick="event.stopPropagation(); Sales.openReturnModal('${UI.escapeHTML(sale.sale_id)}')"
+            title="Return sold items"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            <span>Return</span>
+          </button>
+        `
+        : "";
+
+      const refundBtn = refundDue > 0
+        ? `
+          <button
+            type="button"
+            class="btn-refund-complete"
+            onclick="event.stopPropagation(); Sales.confirmRefundComplete('${UI.escapeHTML(sale.sale_id)}')"
+            title="Mark refund as given to customer"
+          >
+            <span>Refund Completed</span>
+          </button>
+        `
+        : "";
+
       return `
         <div class="sale-history-card" data-sale-id="${UI.escapeHTML(sale.sale_id)}">
           <div class="sale-card-header" onclick="Sales.toggleCard('${UI.escapeHTML(sale.sale_id)}')" role="button" aria-expanded="false" tabindex="0">
@@ -240,11 +276,14 @@ const Sales = (() => {
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span class="sale-customer-name">${UI.escapeHTML(sale.customer_name)}</span>
                 ${paymentBadge}
+                ${refundBadge}
               </div>
               <span class="sale-date">${dateStr}${phoneStr} • ${itemCount} product${itemCount !== 1 ? "s" : ""} (${totalBoxes} box${totalBoxes !== 1 ? "es" : ""})</span>
             </div>
             <div class="sale-meta">
+              ${returnBtn}
               ${payDueBtn}
+              ${refundBtn}
               <span class="sale-amount">${UI.formatCurrency(sale.total_amount)}</span>
               <svg class="sale-toggle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -269,6 +308,10 @@ const Sales = (() => {
               <div class="sale-payment-item">
                 <span class="sale-payment-label">Outstanding Due (Udhaari)</span>
                 <span class="sale-payment-val ${outstanding > 0 ? 'due' : ''}">${UI.formatCurrency(outstanding)}</span>
+              </div>
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">Refund Due</span>
+                <span class="sale-payment-val ${refundDue > 0 ? 'refund' : ''}">${UI.formatCurrency(refundDue)}</span>
               </div>
             </div>
 
@@ -998,6 +1041,7 @@ const Sales = (() => {
       cash_amount: result.cash_amount || 0,
       upi_amount: result.upi_amount || 0,
       outstanding_amount: result.outstanding_amount || 0,
+      refund_amount: result.refund_amount || 0,
       items: Array.isArray(result.items) ? result.items : [],
     };
 
@@ -1045,6 +1089,9 @@ const Sales = (() => {
 
     // Payment Form Submit
     $("paymentForm")?.addEventListener("submit", handlePaymentSubmit);
+
+    // Return Form Submit
+    $("returnSaleForm")?.addEventListener("submit", handleReturnSubmit);
 
     // Payment inputs — live balance bar update
     ["cashAmount", "upiAmount", "udhariAmount"].forEach((id) => {
@@ -1211,6 +1258,307 @@ const Sales = (() => {
     updateStats();
   };
 
+  // ─── Return Modal ────────────────────────────────────────────────────────────
+  const openReturnModal = (saleId) => {
+    const sale = salesList.find((s) => s.sale_id === saleId);
+    if (!sale) {
+      UI.showToast("Error", "Sale not found in current list.", "error");
+      return;
+    }
+
+    const returnable = (sale.items || []).filter((it) => (parseInt(it.quantity, 10) || 0) > 0);
+    if (returnable.length === 0) {
+      UI.showToast("Nothing to Return", "All items from this sale have already been returned.", "warning");
+      return;
+    }
+
+    const summary = $("returnModalSummary");
+    if (summary) {
+      summary.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <strong>${UI.escapeHTML(sale.customer_name || "")}</strong>
+          <span style="font-size:var(--font-size-xs); color:var(--text-muted);">
+            ${sale.phone_number ? UI.escapeHTML(sale.phone_number) + " • " : ""}
+            Sale Date: ${formatDate(sale.date)} • Billed: ${UI.formatCurrency(sale.total_amount)}
+          </span>
+          <span style="font-size:var(--font-size-xs);">
+            Outstanding: <strong style="color:#dc2626;">${UI.formatCurrency(sale.outstanding_amount || 0)}</strong>
+            &nbsp;|&nbsp;
+            Refund Due: <strong style="color:#c2410c;">${UI.formatCurrency(sale.refund_amount || 0)}</strong>
+          </span>
+        </div>
+      `;
+    }
+
+    if ($("returnSaleId")) $("returnSaleId").value = sale.sale_id;
+    showFormServerError("returnServerError", "");
+
+    const container = $("returnItemsContainer");
+    if (container) {
+      container.innerHTML = returnable.map((item) => {
+        const qty = parseInt(item.quantity, 10) || 0;
+        const price = parseFloat(item.selling_price) || 0;
+        return `
+          <div class="return-item-row" data-sale-item-id="${UI.escapeHTML(item.sale_item_id)}" data-max-qty="${qty}">
+            <div>
+              <div class="form-label">Product</div>
+              <div class="return-item-meta">${UI.escapeHTML(item.product_name || item.product_id)}</div>
+              <div class="return-item-sub">Remaining sold: ${qty} box${qty !== 1 ? "es" : ""}</div>
+            </div>
+            <div>
+              <div class="form-label">Selling Price</div>
+              <div class="return-item-meta">${UI.formatCurrency(price)}</div>
+            </div>
+            <div>
+              <label class="form-label">Return Qty</label>
+              <input
+                type="number"
+                class="form-control return-qty-input"
+                min="0"
+                max="${qty}"
+                step="1"
+                value="0"
+                inputmode="numeric"
+              >
+            </div>
+            <div>
+              <div class="form-label">Max Returnable</div>
+              <div class="return-item-meta">${qty}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    UI.openModal("returnSaleModal");
+  };
+
+  const handleReturnSubmit = async (e) => {
+    e.preventDefault();
+    showFormServerError("returnServerError", "");
+
+    const saleId = $("returnSaleId")?.value || "";
+    if (!saleId) {
+      showFormServerError("returnServerError", "Sale ID missing. Please close and reopen the modal.");
+      return;
+    }
+
+    const rows = document.querySelectorAll("#returnItemsContainer .return-item-row");
+    const items = [];
+    let rowError = "";
+
+    rows.forEach((row) => {
+      const saleItemId = row.getAttribute("data-sale-item-id") || "";
+      const maxQty = parseInt(row.getAttribute("data-max-qty"), 10) || 0;
+      const qtyInput = row.querySelector(".return-qty-input");
+      const rawQty = (qtyInput?.value || "").trim();
+      const quantity = parseInt(rawQty, 10);
+
+      qtyInput?.classList.remove("is-invalid");
+
+      if (!rawQty || isNaN(quantity) || quantity < 0 || !Number.isInteger(Number(rawQty))) {
+        qtyInput?.classList.add("is-invalid");
+        if (!rowError) rowError = "Enter a valid whole-number return quantity.";
+        return;
+      }
+
+      if (quantity === 0) return;
+
+      if (quantity > maxQty) {
+        qtyInput?.classList.add("is-invalid");
+        if (!rowError) rowError = `Return quantity cannot exceed remaining sold quantity (${maxQty}).`;
+        return;
+      }
+
+      items.push({ sale_item_id: saleItemId, quantity });
+    });
+
+    if (rowError) {
+      showFormServerError("returnServerError", rowError);
+      return;
+    }
+
+    if (items.length === 0) {
+      showFormServerError("returnServerError", "Enter a return quantity greater than 0 for at least one item.");
+      return;
+    }
+
+    setButtonLoading("returnSubmitBtn", true);
+
+    try {
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALE_RETURN(saleId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ items }),
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        UI.showToast("Session Expired", "Please log in again.", "error");
+        setTimeout(() => { window.location.href = "login.html"; }, 1200);
+        return;
+      }
+      if (response.status === 403) {
+        showFormServerError("returnServerError", "Permission denied. Only administrators can process returns.");
+        return;
+      }
+      if (response.status === 422) {
+        const detail = result.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((d) => `${d.loc?.slice(1)?.join(".")}: ${d.msg}`).join("; ")
+          : String(detail || "Validation error.");
+        showFormServerError("returnServerError", msg);
+        return;
+      }
+      if (!response.ok) {
+        showFormServerError("returnServerError", result.detail || result.message || `Error (${response.status})`);
+        return;
+      }
+
+      UI.showToast(
+        "Return Processed",
+        `Return amount ${UI.formatCurrency(result.total_return_amount)}. Refund due: ${UI.formatCurrency(result.refund_amount)}`,
+        "success"
+      );
+      UI.closeModal("returnSaleModal");
+      applyReturnResult(result.sale_id || saleId, result);
+
+    } catch (err) {
+      console.error("[Sales] handleReturnSubmit error:", err);
+      showFormServerError("returnServerError", "Could not reach the backend server. Please verify connection.");
+    } finally {
+      setButtonLoading("returnSubmitBtn", false);
+    }
+  };
+
+  /**
+   * Patch one sale + local product stock from POST /sales/{id}/return response.
+   * Does NOT call /sales/all.
+   */
+  const applyReturnResult = (saleId, result) => {
+    const idx = salesList.findIndex((s) => s.sale_id === saleId);
+    if (idx === -1) return;
+
+    const updated = {
+      ...salesList[idx],
+      items: (salesList[idx].items || []).map((it) => ({ ...it })),
+    };
+
+    if (result.total_amount !== undefined && result.total_amount !== null) {
+      updated.total_amount = result.total_amount;
+    }
+    if (result.outstanding_amount !== undefined && result.outstanding_amount !== null) {
+      updated.outstanding_amount = result.outstanding_amount;
+    }
+    if (result.refund_amount !== undefined && result.refund_amount !== null) {
+      updated.refund_amount = result.refund_amount;
+    }
+
+    (result.items || []).forEach((retItem) => {
+      const itemIdx = updated.items.findIndex((it) => it.sale_item_id === retItem.sale_item_id);
+      if (itemIdx !== -1) {
+        updated.items[itemIdx].quantity = retItem.remaining_quantity;
+      }
+
+      // Sync product stock / avg PP if catalog is already loaded on this page
+      if (retItem.product_id && productsList.length > 0) {
+        const pIdx = productsList.findIndex((p) => p.product_id === retItem.product_id);
+        if (pIdx !== -1) {
+          const prod = { ...productsList[pIdx] };
+          if (retItem.product_stock_quantity !== undefined) {
+            prod.product_stock_quantity = retItem.product_stock_quantity;
+          }
+          if (retItem.product_purchase_price !== undefined) {
+            prod.product_purchase_price = retItem.product_purchase_price;
+          }
+          productsList[pIdx] = prod;
+        }
+      }
+    });
+
+    salesList[idx] = updated;
+    applySearchFilter();
+    updateStats();
+  };
+
+  // ─── Refund Completed ────────────────────────────────────────────────────────
+  const confirmRefundComplete = (saleId) => {
+    const sale = salesList.find((s) => s.sale_id === saleId);
+    if (!sale) {
+      UI.showToast("Error", "Sale not found in current list.", "error");
+      return;
+    }
+
+    const refundDue = parseFloat(sale.refund_amount || 0) || 0;
+    if (refundDue <= 0) {
+      UI.showToast("No Refund Due", "This sale has no pending refund.", "warning");
+      return;
+    }
+
+    UI.showConfirm({
+      title: "Confirm Refund Completed",
+      message: `Are you sure the full refund has been given to the customer? Refund amount: ${UI.formatCurrency(refundDue)}`,
+      confirmText: "Yes, Refund Given",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        await completeRefund(saleId);
+      },
+    });
+  };
+
+  const completeRefund = async (saleId) => {
+    try {
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALE_REFUND_COMPLETE(saleId)}`,
+        {
+          method: "POST",
+          headers: { "Accept": "application/json" },
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        UI.showToast("Session Expired", "Please log in again.", "error");
+        setTimeout(() => { window.location.href = "login.html"; }, 1200);
+        return;
+      }
+
+      if (!response.ok) {
+        UI.showToast("Refund Failed", result.detail || result.message || "Could not complete refund.", "error");
+        return;
+      }
+
+      UI.showToast("Refund Completed", "Refund marked as given to the customer.", "success");
+      applyRefundCompleteResult(result.sale_id || saleId, result);
+
+    } catch (err) {
+      console.error("[Sales] completeRefund error:", err);
+      UI.showToast("Connection Error", "Could not reach the backend server.", "error");
+    }
+  };
+
+  const applyRefundCompleteResult = (saleId, result) => {
+    const idx = salesList.findIndex((s) => s.sale_id === saleId);
+    if (idx === -1) return;
+
+    salesList[idx] = {
+      ...salesList[idx],
+      refund_amount: result.refund_amount !== undefined ? result.refund_amount : 0,
+    };
+    applySearchFilter();
+    updateStats();
+  };
+
   // ─── Initialization ─────────────────────────────────────────────────────────
   const init = async () => {
     setupEventListeners();
@@ -1235,5 +1583,7 @@ const Sales = (() => {
     removeItemRow,
     openPaymentModal,
     quickFillPayment,
+    openReturnModal,
+    confirmRefundComplete,
   };
 })();

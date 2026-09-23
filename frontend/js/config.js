@@ -29,6 +29,16 @@ const CONFIG = {
     SALES_ALL: "/sales/all",
     SALES_OUTSTANDING: "/sales/outstanding",
     SALE_PAYMENT: (saleId) => `/sales/${encodeURIComponent(saleId)}/payment`,
+    SALE_RETURN: (saleId) => `/sales/${encodeURIComponent(saleId)}/return`,
+    SALE_REFUND_COMPLETE: (saleId) => `/sales/${encodeURIComponent(saleId)}/refund-complete`,
+
+    // Rejection / Waste Operations
+    REJECTION_CREATE: "/rejections/create",
+    REJECTIONS_ALL: "/rejections/all",
+
+    // Expense Operations
+    EXPENSE_CREATE: "/expenses/create",
+    EXPENSES_ALL: "/expenses/all",
   },
 
 };

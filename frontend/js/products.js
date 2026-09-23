@@ -8,10 +8,12 @@
  *  POST   /product/add              — add product { name, brand, size, purchase_price, stock_quantity }
  *  PUT    /product/edit/{id}        — update product { name?, brand?, size? }
  *  DELETE /product/delete/{id}      — delete product
+ *  POST   /rejections/create        — record rejection { product_id, quantity, reason }
  *
  * Design rules:
  *  - product_id is NEVER shown visually; stored in JS state + data-product-id attr only
  *  - stock_quantity is read-only in Edit form; not sent in PUT request
+ *  - After rejection, patch local stock from API response — do NOT call /product/all
  *  - No offline/demo fallback for mutations (only real API calls)
  */
 
@@ -290,6 +292,20 @@ const Products = (() => {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn btn-icon reject"
+              title="Record Rejection / Waste"
+              data-action="reject"
+              data-id="${id}"
+              aria-label="Reject ${name}"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </button>
             <button
@@ -666,6 +682,221 @@ const Products = (() => {
     }
   };
 
+  // ─── Rejection / Waste Stock ───────────────────────────────────────────────────
+  const buildRejectProductOptions = (selectedId) => {
+    const options = productsList
+      .slice()
+      .sort((a, b) => (a.product_name || "").localeCompare(b.product_name || ""))
+      .map((p) => {
+        const stock = parseInt(p.product_stock_quantity, 10) || 0;
+        const selected = selectedId && p.product_id === selectedId ? " selected" : "";
+        const label = `${p.product_name || ""} — ${p.product_brand || ""} (${p.product_size || ""}) [${stock} boxes]`;
+        return `<option value="${UI.escapeHTML(p.product_id)}"${selected}>${UI.escapeHTML(label)}</option>`;
+      })
+      .join("");
+    return `<option value="">Select a product...</option>${options}`;
+  };
+
+  const updateRejectStockDisplay = () => {
+    const select = $("reject_product");
+    const stockEl = $("rejectStockDisplay");
+    if (!select || !stockEl) return;
+
+    const product = productsList.find((p) => p.product_id === select.value);
+    if (!product) {
+      stockEl.textContent = "—";
+      return;
+    }
+    stockEl.textContent = String(parseInt(product.product_stock_quantity, 10) || 0);
+  };
+
+  const syncRejectReasonOther = () => {
+    const reasonSelect = $("reject_reason");
+    const otherInput = $("reject_reason_other");
+    if (!reasonSelect || !otherInput) return;
+    const isOther = reasonSelect.value === "Other";
+    otherInput.classList.toggle("hidden", !isOther);
+    if (!isOther) otherInput.value = "";
+  };
+
+  const openRejectModal = (productId) => {
+    const form = $("rejectProductForm");
+    if (form) form.reset();
+
+    clearFormErrors(["err_reject_product", "err_reject_quantity", "err_reject_reason"]);
+    showFormServerError("rejectServerError", "");
+    ["reject_product", "reject_quantity", "reject_reason", "reject_reason_other"].forEach((id) => {
+      const el = $(id);
+      if (el) el.classList.remove("is-invalid");
+    });
+
+    const lossBox = $("rejectLossBox");
+    if (lossBox) lossBox.classList.add("hidden");
+
+    const select = $("reject_product");
+    if (select) select.innerHTML = buildRejectProductOptions(productId || null);
+
+    const otherInput = $("reject_reason_other");
+    if (otherInput) {
+      otherInput.classList.add("hidden");
+      otherInput.value = "";
+    }
+
+    updateRejectStockDisplay();
+    UI.openModal("rejectProductModal");
+  };
+
+  const validateRejectForm = () => {
+    const productId = ($("reject_product") || {}).value?.trim() || "";
+    const quantityRaw = ($("reject_quantity") || {}).value;
+    const quantity = parseInt(quantityRaw, 10);
+    const reasonSelect = ($("reject_reason") || {}).value || "";
+    const reasonOther = ($("reject_reason_other") || {}).value?.trim() || "";
+
+    let valid = true;
+    clearFormErrors(["err_reject_product", "err_reject_quantity", "err_reject_reason"]);
+
+    if (!productId) {
+      setFieldError("err_reject_product", "Please select a product.");
+      valid = false;
+    }
+
+    const product = productsList.find((p) => p.product_id === productId);
+    const currentStock = product ? (parseInt(product.product_stock_quantity, 10) || 0) : 0;
+
+    if (quantityRaw === "" || isNaN(quantity) || quantity <= 0) {
+      setFieldError("err_reject_quantity", "Quantity must be greater than 0.");
+      valid = false;
+    } else if (product && quantity > currentStock) {
+      setFieldError(
+        "err_reject_quantity",
+        `Cannot reject more than current stock (${currentStock} boxes).`
+      );
+      valid = false;
+    }
+
+    let reason = "";
+    if (!reasonSelect) {
+      setFieldError("err_reject_reason", "Please select a reason.");
+      valid = false;
+    } else if (reasonSelect === "Other") {
+      if (!reasonOther) {
+        setFieldError("err_reject_reason", "Please describe the reason.");
+        valid = false;
+      } else {
+        reason = reasonOther;
+      }
+    } else {
+      reason = reasonSelect;
+    }
+
+    if (!valid) return null;
+    return { product_id: productId, quantity, reason };
+  };
+
+  /**
+   * Patch one product's stock from POST /rejections/create response.
+   * Does NOT call /product/all.
+   */
+  const applyRejectionResult = (result) => {
+    if (!result || !result.product_id) return;
+
+    const pIdx = productsList.findIndex((p) => p.product_id === result.product_id);
+    if (pIdx === -1) return;
+
+    if (result.remaining_stock !== undefined && result.remaining_stock !== null) {
+      productsList[pIdx] = {
+        ...productsList[pIdx],
+        product_stock_quantity: result.remaining_stock,
+      };
+    }
+
+    renderTable();
+    updateStatsSummary();
+  };
+
+  const handleRejectSubmit = async (e) => {
+    e.preventDefault();
+    showFormServerError("rejectServerError", "");
+
+    const lossBox = $("rejectLossBox");
+    if (lossBox) lossBox.classList.add("hidden");
+
+    const payload = validateRejectForm();
+    if (!payload) return;
+
+    setButtonLoading("rejectSubmitBtn", true);
+
+    try {
+      const response = await fetch(
+        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.REJECTION_CREATE}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.status === 422) {
+        const detail = result.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((d) => d.msg || d.message || JSON.stringify(d)).join("; ")
+          : String(detail || "Validation error.");
+        showFormServerError("rejectServerError", msg);
+        return;
+      }
+
+      if (response.status === 401) {
+        UI.showToast("Session Expired", "Please log in again.", "error");
+        setTimeout(() => { window.location.href = "login.html"; }, 1200);
+        return;
+      }
+
+      if (response.status === 403) {
+        showFormServerError("rejectServerError", result.detail || "Only admins can record rejections.");
+        return;
+      }
+
+      if (!response.ok) {
+        const msg = result.detail || result.message || `Server error (${response.status})`;
+        showFormServerError("rejectServerError", typeof msg === "string" ? msg : JSON.stringify(msg));
+        return;
+      }
+
+      // Show calculated loss from backend response (never computed on frontend for authority)
+      const lossValue = $("rejectLossValue");
+      if (lossBox && lossValue && result.rejection_loss !== undefined) {
+        lossValue.textContent = UI.formatCurrency(result.rejection_loss);
+        lossBox.classList.remove("hidden");
+      }
+
+      UI.showToast(
+        "Rejection Recorded",
+        `${result.rejected_quantity} box(es) rejected. Loss: ${UI.formatCurrency(result.rejection_loss)}. Stock now ${result.remaining_stock}.`,
+        "success"
+      );
+
+      applyRejectionResult(result);
+
+      // Brief pause so admin can see the loss, then close
+      setTimeout(() => {
+        UI.closeModal("rejectProductModal");
+      }, 900);
+
+    } catch (err) {
+      console.error("[Products] handleRejectSubmit error:", err);
+      showFormServerError("rejectServerError", "Could not reach the server. Please check your connection.");
+    } finally {
+      setButtonLoading("rejectSubmitBtn", false);
+    }
+  };
+
   // ─── Delete Product ───────────────────────────────────────────────────────────
   const confirmDelete = (productId, productName) => {
     const displayName = productName || "this tile";
@@ -770,14 +1001,20 @@ const Products = (() => {
     $("refreshBtn")?.addEventListener("click", loadProducts);
     $("retryLoadBtn")?.addEventListener("click", loadProducts);
 
-    // Open Add Modal button in header
+    // Open Add / Reject Modal buttons in header
     $("openAddModalBtn")?.addEventListener("click", openAddModal);
+    $("openRejectModalBtn")?.addEventListener("click", () => openRejectModal());
 
     // Form submissions
     $("addProductForm")?.addEventListener("submit", handleAddSubmit);
     $("editProductForm")?.addEventListener("submit", handleEditSubmit);
+    $("rejectProductForm")?.addEventListener("submit", handleRejectSubmit);
 
-    // Table delegation — edit / delete / empty-state buttons
+    // Rejection modal helpers
+    $("reject_product")?.addEventListener("change", updateRejectStockDisplay);
+    $("reject_reason")?.addEventListener("change", syncRejectReasonOther);
+
+    // Table delegation — edit / reject / delete / empty-state buttons
     $("productsTableBody")?.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
@@ -787,6 +1024,7 @@ const Products = (() => {
       const name   = btn.dataset.name;
 
       if (action === "edit")   openEditModal(id);
+      if (action === "reject") openRejectModal(id);
       if (action === "delete") confirmDelete(id, name);
 
       // Empty state buttons
@@ -814,6 +1052,7 @@ const Products = (() => {
     loadProducts,
     openAddModal,
     openEditModal,
+    openRejectModal,
     confirmDelete,
     renderTable,
   };

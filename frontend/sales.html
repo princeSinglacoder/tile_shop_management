@@ -81,6 +81,25 @@
             <span>Purchases</span>
           </a>
         </li>
+        <li>
+          <a href="rejections.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <span>Rejections</span>
+          </a>
+        </li>
+        <li>
+          <a href="expenses.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>Expenses</span>
+          </a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -443,6 +462,63 @@
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- =============================================
+       Modal: Customer Sale Return
+       ============================================= -->
+  <div class="modal-backdrop" id="returnSaleModal" role="dialog" aria-modal="true" aria-labelledby="returnSaleTitle">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-header-accent"></div>
+        <h3 class="modal-title" id="returnSaleTitle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            style="color:var(--primary)">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          Customer Sale Return
+        </h3>
+        <button type="button" class="modal-close-btn" data-modal-close aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="returnSaleForm" novalidate>
+        <div class="modal-body">
+          <div class="form-server-error hidden" id="returnServerError" role="alert"></div>
+
+          <div class="payment-sale-summary" id="returnModalSummary">
+            <!-- Filled by Sales.openReturnModal() -->
+          </div>
+
+          <input type="hidden" id="returnSaleId" value="">
+
+          <div style="margin-top: var(--space-4);">
+            <div style="font-size: var(--font-size-xs); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-2);">
+              Returnable Items — enter quantity only
+            </div>
+            <div id="returnItemsContainer">
+              <!-- Dynamic returnable rows -->
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="returnSubmitBtn">
+            <span class="btn-label">Process Return</span>
+            <span class="btn-spinner hidden">
+              <span class="spinner-sm"></span>
+              Processing...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- JavaScript -->
   <script src="js/config.js"></script>

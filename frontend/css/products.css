@@ -162,6 +162,44 @@
   color: var(--text-muted);
 }
 
+/* ─── Rejection Loss Summary (after successful submit) ───────────────────── */
+.rejection-loss-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.rejection-loss-box.hidden {
+  display: none;
+}
+
+.rejection-loss-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--danger-text);
+}
+
+.rejection-loss-value {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--danger);
+  font-feature-settings: "tnum";
+}
+
+.btn.btn-icon.reject {
+  color: var(--danger);
+}
+
+.btn.btn-icon.reject:hover {
+  background: var(--danger-light);
+}
+
 /* ─── Inline Form Error ─────────────────────────────────────────────────── */
 .form-error {
   font-size: var(--font-size-xs);

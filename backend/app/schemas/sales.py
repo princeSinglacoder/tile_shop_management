@@ -19,4 +19,10 @@ class TempSale(BaseModel):
 class TempPayment(BaseModel):
     payment_method: Literal["cash","upi"] = Field(..., description="The method of payment")
     amount: float = Field(..., gt=0, description="Amount paid by customer")
-    
+
+class TempReturnItems(BaseModel):
+    sale_item_id: str = Field(...,min_length=1,description="Sale item being returned")
+    quantity: int = Field(...,gt=0, description="Number of boxes being returned")
+
+class TempReturn(BaseModel):
+    items: list[TempReturnItems]= Field(...,min_length=1,description="Products being returned")

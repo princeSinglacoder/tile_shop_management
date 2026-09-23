@@ -8,6 +8,7 @@ from app.models.product import ProductDBModel
 from app.utils.normalize_product import normalize
 from app.models.purchase import PurchaseItemDBModel
 from app.models.sale import SaleItemDBModel
+from app.models.rejection import RejectionDBModel
 
 def add_product(tempProduct: TempProduct, db: Session):
 
@@ -73,7 +74,12 @@ def delete_product(product_id: str, db: Session):
         SaleItemDBModel.product_id==product_id
     ).first()
 
-    if purchase_exists or sale_exists:
+    # Check rejection / waste history
+    rejection_exists = db.query(RejectionDBModel).filter(
+        RejectionDBModel.product_id == product_id
+    ).first()
+
+    if purchase_exists or sale_exists or rejection_exists:
         raise HTTPException(
             status_code=409,
             detail="Product cannot be deleted because it has transaction history."

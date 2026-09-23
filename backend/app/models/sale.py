@@ -1,6 +1,7 @@
 from app.databases.database import Base
 from sqlalchemy import Column, String, Integer, Date, Float, ForeignKey
 
+
 class SaleDBModel(Base):
     __tablename__ = "sales"
 
@@ -19,6 +20,9 @@ class SaleDBModel(Base):
     upi_amount = Column(Float, nullable=False, default=0.0)
 
     outstanding_amount = Column(Float, nullable=False, default=0.0)
+
+    refund_amount = Column(Float, nullable=False, default=0.0)
+
 
 class SaleItemDBModel(Base):
     __tablename__ = "sale_items"
@@ -43,4 +47,4 @@ class SaleItemDBModel(Base):
 
     selling_price = Column(Float, nullable=False)
 
-    cost_price = Column(Float, nullable= False)
+    cost_price = Column(Float, nullable=False)

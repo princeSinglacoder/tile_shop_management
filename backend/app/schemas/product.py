@@ -16,4 +16,3 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1,max_length=100,description="The name of the product")
     brand: Optional[str] = Field(None, min_length=1,max_length=100, description="The brand of the product")
     size: Optional[str] = Field(None,min_length=1,max_length=30, description="The size of the product")
-    

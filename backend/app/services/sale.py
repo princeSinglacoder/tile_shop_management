@@ -1,4 +1,4 @@
-from app.schemas.sales import TempSale, TempPayment
+from app.schemas.sales import TempSale, TempPayment, TempReturn
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.product import ProductDBModel
@@ -143,6 +143,7 @@ def create_sale(tempSale: TempSale, db: Session):
         "cash_amount": round(sale.cash_amount, 2),
         "upi_amount": round(sale.upi_amount, 2),
         "outstanding_amount": round(sale.outstanding_amount, 2),
+        "refund_amount": round(sale.refund_amount, 2) if sale.refund_amount is not None else 0.0,
         "items": [
             {
                 "sale_item_id": si.sale_item_id,
@@ -190,6 +191,7 @@ def get_all_sales(db: Session):
             "cash_amount": round(sale.cash_amount, 2) if sale.cash_amount is not None else 0.0,
             "upi_amount": round(sale.upi_amount, 2) if sale.upi_amount is not None else 0.0,
             "outstanding_amount": round(sale.outstanding_amount, 2) if sale.outstanding_amount is not None else 0.0,
+            "refund_amount": round(sale.refund_amount, 2) if sale.refund_amount is not None else 0.0,
             "items": serialized_items
         })
 
@@ -266,4 +268,292 @@ def make_payment(sale_id: str, temp_payment: TempPayment, db: Session):
         "cash_amount": round(sale.cash_amount, 2),
         "upi_amount": round(sale.upi_amount, 2),
         "outstanding_amount": round(sale.outstanding_amount, 2)
+    }
+
+
+def return_product_service(sale_id: str, temp_return: TempReturn, db: Session):
+    # ---------------------------------------------------
+    # 1. Check sale exists
+    # ---------------------------------------------------
+
+    sale = db.query(SaleDBModel).filter(
+        SaleDBModel.sale_id == sale_id
+    ).first()
+
+    if not sale:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sale with id '{sale_id}' not found"
+        )
+
+    # ---------------------------------------------------
+    # 2. Get requested sale_item_ids
+    # ---------------------------------------------------
+
+    sale_item_ids = [
+        item.sale_item_id
+        for item in temp_return.items
+    ]
+
+
+    # ---------------------------------------------------
+    # 3. Check duplicate sale_item_id
+    # ---------------------------------------------------
+
+    if len(sale_item_ids) != len(set(sale_item_ids)):
+        raise HTTPException(
+            status_code=400,
+            detail="Same sale item cannot be returned twice in one request"
+        )
+
+    return_items = []
+
+    for request_item in temp_return.items:
+
+        sale_item = db.query(SaleItemDBModel).filter(
+            SaleItemDBModel.sale_item_id == request_item.sale_item_id
+        ).first()
+
+        if not sale_item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Sale item with id '{request_item.sale_item_id}' not found"
+            )
+
+        # Make sure this sale item belong to the current sale
+
+        if sale_item.sale_id != sale_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sale item '{request_item.sale_item_id}' does not belong to sale '{sale_id}'"
+            )
+
+        # Make sure requested return quantity is valid
+        if request_item.quantity <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Return quantity must be greater than 0"
+            )
+
+        if request_item.quantity > sale_item.quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Cannot return {request_item.quantity} boxes. "
+                    f"Only {sale_item.quantity} boxes were sold in this sale item."
+                )
+            )
+
+        # Store complete DB row for later calculations
+        return_items.append(
+            (request_item, sale_item)
+        )
+
+    total_return_amount = 0.0
+
+    for request_item, sale_item in return_items:
+
+        total_return_amount += (
+            request_item.quantity * sale_item.selling_price
+        )
+
+    total_return_amount = round(total_return_amount, 2)
+
+    # calculate new sale total
+    new_sale_total = round(sale.total_amount-total_return_amount,2)
+
+    if new_sale_total < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Return amount cannot exceed sale amount"
+        )
+
+    current_outstanding = sale.outstanding_amount or 0.0
+    current_refund = sale.refund_amount or 0.0
+
+    if total_return_amount <= current_outstanding:
+
+        # Customer still has some outstanding amount
+        sale.outstanding_amount = round(
+            current_outstanding - total_return_amount,
+            2
+        )
+    else:
+         # Return amount is greater than outstanding amount
+        refund_amount = round(
+            total_return_amount - current_outstanding,
+            2
+        )
+
+        sale.outstanding_amount = 0.0
+
+        sale.refund_amount = round(
+            current_refund + refund_amount,
+            2
+        )
+
+    # Update sale total
+    sale.total_amount = new_sale_total
+
+    # ---------------------------------------------------
+    # Update products and sale item quantities
+    # ---------------------------------------------------
+
+    updated_items = []
+
+    for request_item, sale_item in return_items:
+
+        return_quantity = request_item.quantity
+
+        # Fetch current product
+        product = db.query(ProductDBModel).filter(
+            ProductDBModel.product_id == sale_item.product_id
+        ).first()
+
+        if not product:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Product '{sale_item.product_id}' "
+                    f"not found"
+                )
+            )
+
+        # Current inventory state
+        current_stock = (
+            product.product_stock_quantity
+            if product.product_stock_quantity is not None
+            else 0
+        )
+
+        current_avg_pp = (
+            product.product_purchase_price
+            if product.product_purchase_price is not None
+            else 0.0
+        )
+
+        # Current inventory value
+        current_inventory_value = (
+            current_stock * current_avg_pp
+        )
+
+        # Returned products come back at
+        # their original sale-time cost
+        returned_inventory_value = (
+            return_quantity * sale_item.cost_price
+        )
+
+        # New stock
+        new_stock = current_stock + return_quantity
+
+        # New inventory value
+        new_inventory_value = (
+            current_inventory_value
+            + returned_inventory_value
+        )
+
+        # Recalculate weighted average PP
+        new_avg_pp = (
+            new_inventory_value / new_stock
+            if new_stock > 0
+            else 0.0
+        )
+
+        # Update product
+        product.product_stock_quantity = new_stock
+        product.product_purchase_price = new_avg_pp
+
+        # Overwrite sold quantity
+        sale_item.quantity -= return_quantity
+
+        updated_items.append({
+            "sale_item_id": sale_item.sale_item_id,
+            "product_id": sale_item.product_id,
+            "returned_quantity": return_quantity,
+            "remaining_quantity": sale_item.quantity,
+            "product_stock_quantity": new_stock,
+            "product_purchase_price": round(new_avg_pp, 2),
+        })
+
+    # ---------------------------------------------------
+    # Commit everything together
+    # ---------------------------------------------------
+
+    try:
+
+        db.commit()
+        db.refresh(sale)
+
+    except Exception as e:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to process return — "
+                f"transaction rolled back: {str(e)}"
+            )
+        )
+
+    # ---------------------------------------------------
+    # Response
+    # ---------------------------------------------------
+
+    return {
+        "message": "Return processed successfully",
+        "sale_id": sale.sale_id,
+        "total_return_amount": total_return_amount,
+        "total_amount": round(
+            sale.total_amount,
+            2
+        ),
+        "outstanding_amount": round(
+            sale.outstanding_amount,
+            2
+        ),
+        "refund_amount": round(
+            sale.refund_amount,
+            2
+        ),
+        "items": updated_items
+    }
+
+
+def complete_refund_service(sale_id: str, db: Session):
+    sale = db.query(SaleDBModel).filter(
+        SaleDBModel.sale_id == sale_id
+    ).first()
+
+    if not sale:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Sale with id '{sale_id}' not found"
+        )
+
+    current_refund = sale.refund_amount or 0.0
+
+    if current_refund <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No refund due for this sale"
+        )
+
+    sale.refund_amount = 0.0
+
+    try:
+        db.commit()
+        db.refresh(sale)
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to complete refund — transaction rolled back: {str(e)}"
+        )
+
+    return {
+        "message": "Refund marked as completed",
+        "sale_id": sale.sale_id,
+        "refund_amount": round(sale.refund_amount, 2),
     }

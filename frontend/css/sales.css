@@ -674,6 +674,105 @@
   box-shadow: 0 3px 8px rgba(37, 99, 235, 0.4);
 }
 
+.btn-return {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-return:hover {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.badge-refund {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-refund-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(194, 65, 12, 0.3);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-refund-complete:hover {
+  background: linear-gradient(135deg, #c2410c, #9a3412);
+  transform: translateY(-1px);
+}
+
+.sale-payment-val.refund {
+  color: #c2410c;
+  font-weight: 700;
+}
+
+/* Return modal item rows */
+.return-item-row {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 0.8fr 0.8fr;
+  gap: var(--space-3);
+  align-items: end;
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  margin-bottom: var(--space-3);
+}
+
+.return-item-row .form-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.return-item-meta {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.return-item-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 720px) {
+  .return-item-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* ─── Payment Breakdown in Sale History Card Body ────────────────────────── */
 .sale-payment-summary {
   display: grid;

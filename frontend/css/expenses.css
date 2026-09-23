@@ -1,0 +1,44 @@
+/* Expenses page styles */
+
+.expense-amount {
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  color: var(--text-primary);
+}
+
+.expense-desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+.api-error-banner.hidden {
+  display: none;
+}
+
+.api-error-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.api-error-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--danger-text);
+}
+
+.api-error-msg {
+  font-size: var(--font-size-xs);
+  color: var(--danger-text);
+}
