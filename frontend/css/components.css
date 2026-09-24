@@ -46,7 +46,7 @@
 }
 
 .brand-title {
-  font-size: var(--font-size-md);
+  font-size: 0.95rem;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.02em;
