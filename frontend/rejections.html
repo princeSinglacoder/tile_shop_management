@@ -95,6 +95,18 @@
             <span>Expenses</span>
           </a>
         </li>
+
+        <li class="menu-category">Insights</li>
+        <li>
+          <a href="reports.html" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span>Reports</span>
+          </a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -194,17 +206,29 @@
         </div>
 
         <div class="table-card">
-          <div class="card-header" style="padding: var(--space-4) var(--space-6); margin-bottom: 0;">
+          <div class="card-header" style="padding: var(--space-4) var(--space-6); margin-bottom: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3);">
             <div style="display: flex; align-items: center; gap: var(--space-3);">
               <h2 class="card-title">Rejection History</h2>
               <span class="badge badge-neutral" id="rejectionsCount">Loading...</span>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="refreshRejectionsBtn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-              </svg>
-              <span>Refresh</span>
-            </button>
+            <div class="toolbar-filters" style="margin: 0;">
+              <div class="date-range-filter">
+                <label for="rejectionsStartDate">From
+                  <input type="date" id="rejectionsStartDate" class="form-control" aria-label="From date">
+                </label>
+                <label for="rejectionsEndDate">To
+                  <input type="date" id="rejectionsEndDate" class="form-control" aria-label="To date">
+                </label>
+                <button type="button" class="btn btn-primary btn-sm" id="applyRejectionsDateFilterBtn">Apply Filter</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="clearRejectionsDateFilterBtn">Clear Filter</button>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="refreshRejectionsBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           <div class="api-error-banner hidden" id="apiErrorBanner" role="alert" style="margin: var(--space-4) var(--space-6) 0;">

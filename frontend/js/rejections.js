@@ -12,6 +12,8 @@
 const Rejections = (() => {
   let rejectionsList = [];
   let productsList = [];
+  let activeStartDate = null;
+  let activeEndDate = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -100,19 +102,33 @@ const Rejections = (() => {
   };
 
   // ─── Load rejection history ──────────────────────────────────────────────────
-  const loadRejections = async () => {
+  const isDateFilterActive = () => !!(activeStartDate || activeEndDate);
+
+  const isDateInActiveFilter = (dateStr) => {
+    if (!isDateFilterActive()) return true;
+    if (!dateStr) return false;
+    if (activeStartDate && dateStr < activeStartDate) return false;
+    if (activeEndDate && dateStr > activeEndDate) return false;
+    return true;
+  };
+
+  const buildFilterUrl = (start, end) => {
+    const url = new URL(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.REJECTIONS_FILTER}`);
+    if (start) url.searchParams.set("start_date", start);
+    if (end) url.searchParams.set("end_date", end);
+    return url.toString();
+  };
+
+  const fetchRejectionsFromUrl = async (requestUrl) => {
     hideApiBanner();
     showLoadingState();
 
     try {
-      const response = await fetch(
-        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.REJECTIONS_ALL}`,
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          credentials: "include",
-        }
-      );
+      const response = await fetch(requestUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: "include",
+      });
 
       if (response.status === 401) {
         UI.showToast("Session Expired", "Please log in again.", "error");
@@ -129,19 +145,63 @@ const Rejections = (() => {
       }
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        const detail = errData.detail || `Server error: ${response.status}`;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
 
       const data = await response.json();
       rejectionsList = Array.isArray(data) ? data : [];
     } catch (err) {
-      console.error("[Rejections] loadRejections failed:", err);
+      console.error("[Rejections] fetchRejections failed:", err);
       rejectionsList = [];
       showApiBanner(err.message);
     }
 
     renderTable();
     updateStats();
+  };
+
+  /** Initial load / clear: GET /rejections/all only */
+  const loadRejections = async () => {
+    await fetchRejectionsFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.REJECTIONS_ALL}`);
+  };
+
+  /** Apply Filter: GET /rejections/filter only */
+  const applyDateFilter = async () => {
+    const start = ($("rejectionsStartDate")?.value || "").trim() || null;
+    const end = ($("rejectionsEndDate")?.value || "").trim() || null;
+
+    if (!start && !end) {
+      UI.showToast("Date Required", "Select From date, To date, or both.", "error");
+      return;
+    }
+    if (start && end && start > end) {
+      UI.showToast("Invalid Date Range", "From date cannot be after To date.", "error");
+      return;
+    }
+
+    activeStartDate = start;
+    activeEndDate = end;
+    await fetchRejectionsFromUrl(buildFilterUrl(start, end));
+  };
+
+  const clearDateFilter = async () => {
+    const startInput = $("rejectionsStartDate");
+    const endInput = $("rejectionsEndDate");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    activeStartDate = null;
+    activeEndDate = null;
+    await loadRejections();
+  };
+
+  const refreshRejections = async () => {
+    if (isDateFilterActive()) {
+      await fetchRejectionsFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+    } else {
+      await loadRejections();
+    }
   };
 
   const showLoadingState = () => {
@@ -348,12 +408,20 @@ const Rejections = (() => {
       product.product_stock_quantity = result.remaining_stock;
     }
 
+    const rejectionDate = new Date().toISOString().split("T")[0];
+
+    if (!isDateInActiveFilter(rejectionDate)) {
+      renderTable();
+      updateStats();
+      return;
+    }
+
     rejectionsList.unshift({
       rejection_id: result.rejection_id,
       product_id: result.product_id,
       product_name: product ? product.product_name : "Unknown",
       quantity: result.rejected_quantity,
-      rejection_date: new Date().toISOString().split("T")[0],
+      rejection_date: rejectionDate,
       reason: reason || "",
       cost_price: result.cost_price,
       rejection_loss: result.rejection_loss,
@@ -444,11 +512,13 @@ const Rejections = (() => {
 
   const setupEventListeners = () => {
     $("openRejectModalBtn")?.addEventListener("click", () => openRejectModal());
-    $("refreshRejectionsBtn")?.addEventListener("click", loadRejections);
-    $("retryLoadBtn")?.addEventListener("click", loadRejections);
+    $("refreshRejectionsBtn")?.addEventListener("click", refreshRejections);
+    $("retryLoadBtn")?.addEventListener("click", refreshRejections);
     $("rejectProductForm")?.addEventListener("submit", handleRejectSubmit);
     $("reject_product")?.addEventListener("change", updateRejectStockDisplay);
     $("reject_reason")?.addEventListener("change", syncRejectReasonOther);
+    $("applyRejectionsDateFilterBtn")?.addEventListener("click", applyDateFilter);
+    $("clearRejectionsDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
   document.addEventListener("DOMContentLoaded", () => {

@@ -23,10 +23,12 @@ const CONFIG = {
     // Purchase Operations
     PURCHASE_CREATE: "/purchases/create",
     PURCHASES_ALL: "/purchases/all",
+    PURCHASES_FILTER: "/purchases/filter",
 
     // Sales Operations
     SALE_CREATE: "/sales/create",
     SALES_ALL: "/sales/all",
+    SALES_FILTER: "/sales/filter",
     SALES_OUTSTANDING: "/sales/outstanding",
     SALE_PAYMENT: (saleId) => `/sales/${encodeURIComponent(saleId)}/payment`,
     SALE_RETURN: (saleId) => `/sales/${encodeURIComponent(saleId)}/return`,
@@ -35,10 +37,16 @@ const CONFIG = {
     // Rejection / Waste Operations
     REJECTION_CREATE: "/rejections/create",
     REJECTIONS_ALL: "/rejections/all",
+    REJECTIONS_FILTER: "/rejections/filter",
 
     // Expense Operations
     EXPENSE_CREATE: "/expenses/create",
     EXPENSES_ALL: "/expenses/all",
+    EXPENSES_FILTER: "/expenses/filter",
+
+    // Reports & Business Summary
+    REPORTS_SUMMARY: "/reports/summary",
+    REPORTS_FILTER: "/reports/filter",
   },
 
 };

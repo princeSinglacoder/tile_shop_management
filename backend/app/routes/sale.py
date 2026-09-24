@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.schemas.sales import TempSale, TempPayment, TempReturn
 from app.databases.database import get_db
 from app.utils.jwt import get_current_user
+from app.utils.date_range import resolve_filter_date_range
 from app.services.sale import create_sale as create_sale_service
 from app.services.sale import make_payment as make_payment_service
 from app.services.sale import get_all_sales
+from app.services.sale import filter_sales
 from app.services.sale import get_outstanding_sales
 from app.services.sale import return_product_service
 from app.services.sale import complete_refund_service
@@ -32,6 +36,20 @@ def get_sales(
         raise HTTPException(status_code=403, detail="Only admins can view sales")
 
     return get_all_sales(db)
+
+
+@router.get("/filter")
+def filter_sales_by_date(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.user_role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view sales")
+
+    start, end = resolve_filter_date_range(start_date, end_date)
+    return filter_sales(db, start_date=start, end_date=end)
 
 
 @router.get("/outstanding")

@@ -1,9 +1,12 @@
 from datetime import date
+from typing import Optional
+
 from app.schemas.rejection import TempRejection
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.product import ProductDBModel
 from app.models.rejection import RejectionDBModel
+from app.utils.date_range import apply_date_range_filter
 import uuid
 
 
@@ -92,7 +95,25 @@ def get_all_rejections(db: Session):
     rejections = db.query(RejectionDBModel).order_by(
         RejectionDBModel.rejection_date.desc()
     ).all()
+    return _serialize_rejections(rejections, db)
 
+
+def filter_rejections(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    query = db.query(RejectionDBModel)
+    query = apply_date_range_filter(
+        query, RejectionDBModel.rejection_date, start_date, end_date
+    )
+    rejections = query.order_by(
+        RejectionDBModel.rejection_date.desc()
+    ).all()
+    return _serialize_rejections(rejections, db)
+
+
+def _serialize_rejections(rejections, db: Session):
     result = []
 
     for r in rejections:

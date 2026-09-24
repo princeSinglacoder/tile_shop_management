@@ -5,6 +5,7 @@ from app.routes.purchase import router as purchase_router
 from app.routes.sale import router as sale_router
 from app.routes.rejection import router as rejection_router
 from app.routes.expense import router as expense_router
+from app.routes.report import router as report_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.databases.database import Base,engine
 from app.models.user import UserDBModel
@@ -43,6 +44,7 @@ app.include_router(purchase_router)
 app.include_router(sale_router)
 app.include_router(rejection_router)
 app.include_router(expense_router)
+app.include_router(report_router)
 
 @app.get("/")
 def read_root():

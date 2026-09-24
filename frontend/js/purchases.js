@@ -15,6 +15,8 @@ const Purchases = (() => {
   let productsList = [];       // Products for dropdown
   let purchasesList = [];      // Purchase history
   let itemRowCounter = 0;      // Unique row IDs
+  let activeStartDate = null;
+  let activeEndDate = null;
 
   // ─── DOM Helpers ─────────────────────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
@@ -80,8 +82,25 @@ const Purchases = (() => {
     }
   };
 
-  // ─── Load Purchase History ───────────────────────────────────────────────────
-  const loadPurchases = async () => {
+  // ─── Date range filter (dedicated /purchases/filter API) ─────────────────────
+  const isDateFilterActive = () => !!(activeStartDate || activeEndDate);
+
+  const isDateInActiveFilter = (dateStr) => {
+    if (!isDateFilterActive()) return true;
+    if (!dateStr) return false;
+    if (activeStartDate && dateStr < activeStartDate) return false;
+    if (activeEndDate && dateStr > activeEndDate) return false;
+    return true;
+  };
+
+  const buildFilterUrl = (start, end) => {
+    const url = new URL(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.PURCHASES_FILTER}`);
+    if (start) url.searchParams.set("start_date", start);
+    if (end) url.searchParams.set("end_date", end);
+    return url.toString();
+  };
+
+  const fetchPurchasesFromUrl = async (requestUrl) => {
     const container = $("purchaseHistoryContainer");
     if (container) {
       container.innerHTML = `
@@ -92,14 +111,11 @@ const Purchases = (() => {
     }
 
     try {
-      const response = await fetch(
-        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.PURCHASES_ALL}`,
-        {
-          method: "GET",
-          headers: { "Accept": "application/json" },
-          credentials: "include",
-        }
-      );
+      const response = await fetch(requestUrl, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
 
       if (response.status === 401) {
         UI.showToast("Session Expired", "Please log in again.", "error");
@@ -107,20 +123,69 @@ const Purchases = (() => {
         return;
       }
 
-      if (!response.ok) throw new Error("Failed to load purchases");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const detail = errData.detail || "Failed to load purchases";
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      }
 
       const data = await response.json();
       if (Array.isArray(data)) {
         purchasesList = data;
       }
     } catch (err) {
-      console.error("[Purchases] loadPurchases failed:", err);
+      console.error("[Purchases] fetchPurchases failed:", err);
+      UI.showToast("Load Failed", err.message || "Could not load purchases.", "error");
       purchasesList = [];
     }
 
     renderPurchaseHistory();
     updateStats();
   };
+
+  /** Initial load / clear: GET /purchases/all only */
+  const loadPurchases = async () => {
+    await fetchPurchasesFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.PURCHASES_ALL}`);
+  };
+
+  /** Apply Filter: GET /purchases/filter only */
+  const applyDateFilter = async () => {
+    const start = ($("purchasesStartDate")?.value || "").trim() || null;
+    const end = ($("purchasesEndDate")?.value || "").trim() || null;
+
+    if (!start && !end) {
+      UI.showToast("Date Required", "Select From date, To date, or both.", "error");
+      return;
+    }
+    if (start && end && start > end) {
+      UI.showToast("Invalid Date Range", "From date cannot be after To date.", "error");
+      return;
+    }
+
+    activeStartDate = start;
+    activeEndDate = end;
+    await fetchPurchasesFromUrl(buildFilterUrl(start, end));
+  };
+
+  const clearDateFilter = async () => {
+    const startInput = $("purchasesStartDate");
+    const endInput = $("purchasesEndDate");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    activeStartDate = null;
+    activeEndDate = null;
+    await loadPurchases();
+  };
+
+  const refreshPurchases = async () => {
+    if (isDateFilterActive()) {
+      await fetchPurchasesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+    } else {
+      await loadPurchases();
+    }
+  };
+
+  // ─── Load Purchase History ───────────────────────────────────────────────────
 
   // ─── Render Purchase History ─────────────────────────────────────────────────
   const renderPurchaseHistory = () => {
@@ -563,6 +628,11 @@ const Purchases = (() => {
       items: Array.isArray(result.items) ? result.items : [],
     };
 
+    if (!isDateInActiveFilter(purchase.date)) {
+      updateStats();
+      return;
+    }
+
     purchasesList.unshift(purchase);
     renderPurchaseHistory();
     updateStats();
@@ -713,6 +783,9 @@ const Purchases = (() => {
 
     // Inline add product form
     $("inlineAddProductForm")?.addEventListener("submit", handleInlineAddProduct);
+
+    $("applyPurchasesDateFilterBtn")?.addEventListener("click", applyDateFilter);
+    $("clearPurchasesDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
   // ─── Init ────────────────────────────────────────────────────────────────────
@@ -726,6 +799,7 @@ const Purchases = (() => {
   // ─── Public API ──────────────────────────────────────────────────────────────
   return {
     loadPurchases,
+    refreshPurchases,
     openCreateModal,
     toggleCard,
     addItemRow,

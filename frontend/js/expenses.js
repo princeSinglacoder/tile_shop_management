@@ -10,6 +10,8 @@
 
 const Expenses = (() => {
   let expensesList = [];
+  let activeStartDate = null;
+  let activeEndDate = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -70,19 +72,33 @@ const Expenses = (() => {
     if (banner) banner.classList.add("hidden");
   };
 
-  const loadExpenses = async () => {
+  const isDateFilterActive = () => !!(activeStartDate || activeEndDate);
+
+  const isDateInActiveFilter = (dateStr) => {
+    if (!isDateFilterActive()) return true;
+    if (!dateStr) return false;
+    if (activeStartDate && dateStr < activeStartDate) return false;
+    if (activeEndDate && dateStr > activeEndDate) return false;
+    return true;
+  };
+
+  const buildFilterUrl = (start, end) => {
+    const url = new URL(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.EXPENSES_FILTER}`);
+    if (start) url.searchParams.set("start_date", start);
+    if (end) url.searchParams.set("end_date", end);
+    return url.toString();
+  };
+
+  const fetchExpensesFromUrl = async (requestUrl) => {
     hideApiBanner();
     showLoadingState();
 
     try {
-      const response = await fetch(
-        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.EXPENSES_ALL}`,
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          credentials: "include",
-        }
-      );
+      const response = await fetch(requestUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: "include",
+      });
 
       if (response.status === 401) {
         UI.showToast("Session Expired", "Please log in again.", "error");
@@ -99,19 +115,63 @@ const Expenses = (() => {
       }
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        const detail = errData.detail || `Server error: ${response.status}`;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
 
       const data = await response.json();
       expensesList = Array.isArray(data) ? data : [];
     } catch (err) {
-      console.error("[Expenses] loadExpenses failed:", err);
+      console.error("[Expenses] fetchExpenses failed:", err);
       expensesList = [];
       showApiBanner(err.message);
     }
 
     renderTable();
     updateStats();
+  };
+
+  /** Initial load / clear: GET /expenses/all only */
+  const loadExpenses = async () => {
+    await fetchExpensesFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.EXPENSES_ALL}`);
+  };
+
+  /** Apply Filter: GET /expenses/filter only */
+  const applyDateFilter = async () => {
+    const start = ($("expensesStartDate")?.value || "").trim() || null;
+    const end = ($("expensesEndDate")?.value || "").trim() || null;
+
+    if (!start && !end) {
+      UI.showToast("Date Required", "Select From date, To date, or both.", "error");
+      return;
+    }
+    if (start && end && start > end) {
+      UI.showToast("Invalid Date Range", "From date cannot be after To date.", "error");
+      return;
+    }
+
+    activeStartDate = start;
+    activeEndDate = end;
+    await fetchExpensesFromUrl(buildFilterUrl(start, end));
+  };
+
+  const clearDateFilter = async () => {
+    const startInput = $("expensesStartDate");
+    const endInput = $("expensesEndDate");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    activeStartDate = null;
+    activeEndDate = null;
+    await loadExpenses();
+  };
+
+  const refreshExpenses = async () => {
+    if (isDateFilterActive()) {
+      await fetchExpensesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+    } else {
+      await loadExpenses();
+    }
   };
 
   const showLoadingState = () => {
@@ -290,6 +350,11 @@ const Expenses = (() => {
   const applyCreatedExpense = (result) => {
     if (!result || !result.expense_id) return;
 
+    if (!isDateInActiveFilter(result.expense_date)) {
+      updateStats();
+      return;
+    }
+
     expensesList.unshift({
       expense_id: result.expense_id,
       expense_date: result.expense_date,
@@ -370,10 +435,12 @@ const Expenses = (() => {
 
   const setupEventListeners = () => {
     $("openExpenseModalBtn")?.addEventListener("click", openCreateModal);
-    $("refreshExpensesBtn")?.addEventListener("click", loadExpenses);
-    $("retryLoadBtn")?.addEventListener("click", loadExpenses);
+    $("refreshExpensesBtn")?.addEventListener("click", refreshExpenses);
+    $("retryLoadBtn")?.addEventListener("click", refreshExpenses);
     $("expenseForm")?.addEventListener("submit", handleSubmit);
     $("expense_category")?.addEventListener("change", syncCategoryOther);
+    $("applyExpensesDateFilterBtn")?.addEventListener("click", applyDateFilter);
+    $("clearExpensesDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
   document.addEventListener("DOMContentLoaded", () => {

@@ -729,6 +729,30 @@
   gap: var(--space-3);
 }
 
+.date-range-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.date-range-filter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.date-range-filter .form-control {
+  width: auto;
+  min-width: 9.5rem;
+  font-size: var(--font-size-xs);
+  padding: 0.4rem 0.6rem;
+}
+
 /* ==========================================================================
    8. Badges / Chips
    ========================================================================== */

@@ -1,8 +1,12 @@
+from datetime import date
+from typing import Optional
+
 from app.schemas.purchase import TempPurchase
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.product import ProductDBModel
 from app.models.purchase import PurchaseDBModel, PurchaseItemDBModel
+from app.utils.date_range import apply_date_range_filter
 import uuid
 
 
@@ -115,7 +119,21 @@ def create_purchase(tempPurchase: TempPurchase, db: Session):
 
 def get_all_purchase(db: Session):
     purchases = db.query(PurchaseDBModel).order_by(PurchaseDBModel.date.desc()).all()
+    return _serialize_purchases(purchases, db)
 
+
+def filter_purchases(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    query = db.query(PurchaseDBModel)
+    query = apply_date_range_filter(query, PurchaseDBModel.date, start_date, end_date)
+    purchases = query.order_by(PurchaseDBModel.date.desc()).all()
+    return _serialize_purchases(purchases, db)
+
+
+def _serialize_purchases(purchases, db: Session):
     result = []
 
     for purchase in purchases:

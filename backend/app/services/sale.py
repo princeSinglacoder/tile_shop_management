@@ -1,8 +1,12 @@
+from datetime import date
+from typing import Optional
+
 from app.schemas.sales import TempSale, TempPayment, TempReturn
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.product import ProductDBModel
 from app.models.sale import SaleDBModel, SaleItemDBModel
+from app.utils.date_range import apply_date_range_filter
 import uuid
 
 
@@ -160,7 +164,21 @@ def create_sale(tempSale: TempSale, db: Session):
 
 def get_all_sales(db: Session):
     sales = db.query(SaleDBModel).order_by(SaleDBModel.date.desc()).all()
+    return _serialize_sales(sales, db)
 
+
+def filter_sales(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    query = db.query(SaleDBModel)
+    query = apply_date_range_filter(query, SaleDBModel.date, start_date, end_date)
+    sales = query.order_by(SaleDBModel.date.desc()).all()
+    return _serialize_sales(sales, db)
+
+
+def _serialize_sales(sales, db: Session):
     result = []
 
     for sale in sales:

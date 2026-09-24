@@ -16,6 +16,8 @@ const Sales = (() => {
   let salesList = [];          // Complete sales history from backend
   let filteredSalesList = [];  // Filtered sales for search
   let itemRowCounter = 0;      // Unique row ID counter
+  let activeStartDate = null;  // Applied filter dates (null = viewing /all)
+  let activeEndDate = null;
 
   // ─── DOM Helpers ─────────────────────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
@@ -84,8 +86,25 @@ const Sales = (() => {
     }
   };
 
-  // ─── Load Sale History ───────────────────────────────────────────────────────
-  const loadSales = async () => {
+  // ─── Date range filter (dedicated /sales/filter API) ─────────────────────────
+  const isDateFilterActive = () => !!(activeStartDate || activeEndDate);
+
+  const isDateInActiveFilter = (dateStr) => {
+    if (!isDateFilterActive()) return true;
+    if (!dateStr) return false;
+    if (activeStartDate && dateStr < activeStartDate) return false;
+    if (activeEndDate && dateStr > activeEndDate) return false;
+    return true;
+  };
+
+  const buildFilterUrl = (start, end) => {
+    const url = new URL(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_FILTER}`);
+    if (start) url.searchParams.set("start_date", start);
+    if (end) url.searchParams.set("end_date", end);
+    return url.toString();
+  };
+
+  const fetchSalesFromUrl = async (requestUrl) => {
     const container = $("saleHistoryContainer");
     const refreshBtn = $("refreshSalesBtn");
     const refreshIcon = refreshBtn?.querySelector("svg");
@@ -102,14 +121,11 @@ const Sales = (() => {
     }
 
     try {
-      const response = await fetch(
-        `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_ALL}`,
-        {
-          method: "GET",
-          headers: { "Accept": "application/json" },
-          credentials: "include",
-        }
-      );
+      const response = await fetch(requestUrl, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
 
       if (response.status === 401) {
         UI.showToast("Session Expired", "Please log in again.", "error");
@@ -126,7 +142,9 @@ const Sales = (() => {
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to load sales (HTTP ${response.status})`);
+        const errData = await response.json().catch(() => ({}));
+        const detail = errData.detail || `Failed to load sales (HTTP ${response.status})`;
+        throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
       }
 
       const data = await response.json();
@@ -135,7 +153,8 @@ const Sales = (() => {
         applySearchFilter();
       }
     } catch (err) {
-      console.error("[Sales] loadSales error:", err);
+      console.error("[Sales] fetchSales error:", err);
+      UI.showToast("Load Failed", err.message || "Could not load sales.", "error");
       salesList = [];
       filteredSalesList = [];
       renderSaleHistory();
@@ -144,6 +163,53 @@ const Sales = (() => {
       updateStats();
     }
   };
+
+  /** Initial load / clear / refresh-unfiltered: GET /sales/all only */
+  const loadSales = async () => {
+    await fetchSalesFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_ALL}`);
+  };
+
+  /** Apply Filter: GET /sales/filter only — never calls /all first */
+  const applyDateFilter = async () => {
+    const start = ($("salesStartDate")?.value || "").trim() || null;
+    const end = ($("salesEndDate")?.value || "").trim() || null;
+
+    if (!start && !end) {
+      UI.showToast("Date Required", "Select From date, To date, or both.", "error");
+      return;
+    }
+    if (start && end && start > end) {
+      UI.showToast("Invalid Date Range", "From date cannot be after To date.", "error");
+      return;
+    }
+
+    activeStartDate = start;
+    activeEndDate = end;
+    await fetchSalesFromUrl(buildFilterUrl(start, end));
+  };
+
+  /** Clear Filter: reset inputs and GET /sales/all once */
+  const clearDateFilter = async () => {
+    const startInput = $("salesStartDate");
+    const endInput = $("salesEndDate");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    activeStartDate = null;
+    activeEndDate = null;
+    await loadSales();
+  };
+
+  /** Refresh keeps current view: /filter if filtered, otherwise /all */
+  const refreshSales = async () => {
+    if (isDateFilterActive()) {
+      await fetchSalesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+    } else {
+      await loadSales();
+    }
+  };
+
+  // ─── Load Sale History (kept name for public API / HTML onclick) ─────────────
+  // NOTE: HTML Refresh button calls Sales.loadSales — wire through refreshSales.
 
   // ─── Filter & Search ────────────────────────────────────────────────────────
   const applySearchFilter = () => {
@@ -1045,6 +1111,11 @@ const Sales = (() => {
       items: Array.isArray(result.items) ? result.items : [],
     };
 
+    if (!isDateInActiveFilter(sale.date)) {
+      updateStats();
+      return;
+    }
+
     salesList.unshift(sale);
     applySearchFilter();
     updateStats();
@@ -1100,6 +1171,10 @@ const Sales = (() => {
 
     // Search / Filter Input
     $("salesSearchInput")?.addEventListener("input", applySearchFilter);
+
+    // Server-side date range via /sales/filter
+    $("applySalesDateFilterBtn")?.addEventListener("click", applyDateFilter);
+    $("clearSalesDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
   // ─── Payment Modal ───────────────────────────────────────────────────────────
@@ -1576,6 +1651,7 @@ const Sales = (() => {
   // ─── Public Interface ───────────────────────────────────────────────────────
   return {
     loadSales,
+    refreshSales,
     loadProducts,
     openCreateModal,
     toggleCard,

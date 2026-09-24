@@ -1,7 +1,11 @@
+from datetime import date
+from typing import Optional
+
 from app.schemas.expense import TempExpense
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.expense import ExpenseDBModel
+from app.utils.date_range import apply_date_range_filter
 import uuid
 
 
@@ -62,7 +66,26 @@ def get_all_expenses(db: Session):
         ExpenseDBModel.expense_date.desc(),
         ExpenseDBModel.expense_id.desc(),
     ).all()
+    return _serialize_expenses(expenses)
 
+
+def filter_expenses(
+    db: Session,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    query = db.query(ExpenseDBModel)
+    query = apply_date_range_filter(
+        query, ExpenseDBModel.expense_date, start_date, end_date
+    )
+    expenses = query.order_by(
+        ExpenseDBModel.expense_date.desc(),
+        ExpenseDBModel.expense_id.desc(),
+    ).all()
+    return _serialize_expenses(expenses)
+
+
+def _serialize_expenses(expenses):
     return [
         {
             "expense_id": e.expense_id,

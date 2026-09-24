@@ -1,0 +1,193 @@
+/* Reports page styles */
+
+.report-filter-card {
+  margin-bottom: var(--space-6);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.report-filter-card .card-header {
+  max-width: 100%;
+}
+
+.report-filter-card .toolbar-filters,
+.report-filter-card .date-range-filter {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.report-section {
+  margin-bottom: var(--space-6);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.report-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.report-section-title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.report-section-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/*
+  Responsive report cards:
+  - minmax(0, 1fr) lets tracks shrink below content so cards never force
+    horizontal overflow / clipped rightmost columns.
+  - Explicit column counts keep gaps consistent across breakpoints.
+*/
+.report-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.report-stats-grid > .stat-card {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  gap: var(--space-3);
+}
+
+.report-stats-grid .stat-content {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.report-stats-grid .stat-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: clamp(1.05rem, 1.8vw + 0.6rem, var(--font-size-2xl));
+}
+
+.report-stats-grid .stat-label,
+.report-stats-grid .stat-subtext {
+  overflow-wrap: anywhere;
+}
+
+.report-stats-grid .stat-icon-wrapper {
+  flex-shrink: 0;
+}
+
+.report-loading-overlay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  margin-bottom: var(--space-4);
+  background: var(--bg-muted, #f1f5f9);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.report-loading-overlay.hidden {
+  display: none;
+}
+
+.report-loading-overlay .spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(37, 99, 235, 0.25);
+  border-top-color: var(--primary, #2563eb);
+  border-radius: 50%;
+  animation: report-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes report-spin {
+  to { transform: rotate(360deg); }
+}
+
+.profit-positive {
+  color: var(--success-text, #047857) !important;
+}
+
+.profit-negative {
+  color: var(--danger-text, #b91c1c) !important;
+}
+
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--danger-light);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.api-error-banner.hidden {
+  display: none;
+}
+
+.api-error-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.api-error-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--danger-text);
+}
+
+.api-error-msg {
+  font-size: var(--font-size-xs);
+  color: var(--danger-text);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .report-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .report-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1320px) {
+  .report-stats-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .report-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-stats-grid > .stat-card {
+    padding: var(--space-4);
+  }
+}
