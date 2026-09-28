@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.schemas.user import UserLogin
 from app.databases.database import get_db
 from app.models.user import UserDBModel
-from app.utils.hash_pass import pwd_context
 from app.utils.jwt import create_jwt_token, get_current_user
 from app.config import get_settings
 
