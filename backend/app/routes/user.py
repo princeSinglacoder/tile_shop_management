@@ -33,7 +33,7 @@ def login_user(loginUser: UserLogin, response: Response, db: Session = Depends(g
         value=token,
         httponly=True,                          # JS cannot read this cookie
         secure=settings.IS_PRODUCTION,          # True in production (HTTPS only)
-        samesite="lax",
+        samesite="none" if settings.IS_PRODUCTION else "lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
