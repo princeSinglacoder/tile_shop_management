@@ -20,13 +20,9 @@ def login_user(loginUser: UserLogin, response: Response, db: Session = Depends(g
     # 1. Look up user by email
     user = db.query(UserDBModel).filter(UserDBModel.user_email == loginUser.email).first()
 
-    # 2. Verify password against bcrypt hash
-    try:
-        if not user or not pwd_context.verify(loginUser.password, user.user_pass):
-            raise HTTPException(status_code=401, detail="Invalid email or password")
-    except ValueError:
-        # Catch malformed hashes stored in the DB (passlib throws ValueError)
-        raise HTTPException(status_code=401, detail="Invalid email or password (malformed hash in DB)")
+    # 2. Verify password (Plain text)
+    if not user or user.user_pass != loginUser.password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # 3. Create JWT token
     token = create_jwt_token(user.user_id)
