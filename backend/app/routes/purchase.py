@@ -20,7 +20,10 @@ def create_purchase(
     db: Session = Depends(get_db)
 ):
     if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can create purchases")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not authorized to create a purchase"
+        )
 
     return create_purchase_service(tempPurchase, db)
 

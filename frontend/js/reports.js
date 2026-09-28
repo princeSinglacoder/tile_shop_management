@@ -21,6 +21,7 @@ const Reports = (() => {
       quantity_sold: 0,
       cash_received: 0,
       upi_received: 0,
+      refunded_amount: 0,
     },
     purchases: { amount: 0, orders: 0, quantity: 0 },
     rejections: { quantity: 0, loss: 0 },
@@ -33,7 +34,7 @@ const Reports = (() => {
       low_stock: 0,
       out_of_stock: 0,
     },
-    receivables: { outstanding: 0, refund_pending: 0 },
+    receivables: { outstanding: 0, refund_pending: 0, refund_completed: 0 },
   };
 
   const showApiBanner = (msg) => {
@@ -131,19 +132,21 @@ const Reports = (() => {
 
     setText("statOutstanding", money(recv.outstanding));
     setText("statRefundPending", money(recv.refund_pending));
+    setText("statRefundCompleted", money(recv.refund_completed || s.refunded_amount));
+    setText("statRefunded", money(s.refunded_amount));
 
     updateFilterBadge();
   };
 
   const clearReportDisplay = () => {
     const placeholders = [
-      "statRevenue", "statOrders", "statQtySold", "statCash", "statUpi",
+      "statRevenue", "statOrders", "statQtySold", "statCash", "statUpi", "statRefunded",
       "statPurchaseAmount", "statPurchaseOrders", "statPurchaseQty",
       "statRejectedQty", "statRejectionLoss", "statExpensesTotal",
       "statCogs", "statGrossProfit", "statNetProfit",
       "statTotalStock", "statInventoryValue", "statTotalDesigns",
       "statLowStock", "statOutOfStock",
-      "statOutstanding", "statRefundPending",
+      "statOutstanding", "statRefundPending", "statRefundCompleted",
     ];
     placeholders.forEach((id) => setText(id, "—"));
     const netEl = $("statNetProfit");

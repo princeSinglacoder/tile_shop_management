@@ -23,6 +23,8 @@ class SaleDBModel(Base):
 
     refund_amount = Column(Float, nullable=False, default=0.0)
 
+    refunded_amount = Column(Float, nullable=False, default=0.0)
+
 
 class SaleItemDBModel(Base):
     __tablename__ = "sale_items"

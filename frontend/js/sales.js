@@ -379,6 +379,12 @@ const Sales = (() => {
                 <span class="sale-payment-label">Refund Due</span>
                 <span class="sale-payment-val ${refundDue > 0 ? 'refund' : ''}">${UI.formatCurrency(refundDue)}</span>
               </div>
+              ${parseFloat(sale.refunded_amount || 0) > 0 ? `
+              <div class="sale-payment-item">
+                <span class="sale-payment-label">Refunded</span>
+                <span class="sale-payment-val" style="color: var(--text-muted);">${UI.formatCurrency(sale.refunded_amount)}</span>
+              </div>
+              ` : ''}
             </div>
 
             <table class="sale-items-table">
@@ -1629,6 +1635,7 @@ const Sales = (() => {
     salesList[idx] = {
       ...salesList[idx],
       refund_amount: result.refund_amount !== undefined ? result.refund_amount : 0,
+      refunded_amount: result.refunded_amount !== undefined ? result.refunded_amount : ((salesList[idx].refunded_amount || 0) + (salesList[idx].refund_amount || 0)),
     };
     applySearchFilter();
     updateStats();

@@ -44,6 +44,7 @@ def _period_sales(db: Session, start_date: Optional[date], end_date: Optional[da
         ).label("orders"),
         func.coalesce(func.sum(SaleDBModel.cash_amount), 0.0).label("cash"),
         func.coalesce(func.sum(SaleDBModel.upi_amount), 0.0).label("upi"),
+        func.coalesce(func.sum(SaleDBModel.refunded_amount), 0.0).label("refunded"),
     )
     sales_q = apply_date_range_filter(sales_q, SaleDBModel.date, start_date, end_date)
     row = sales_q.one()
@@ -67,13 +68,20 @@ def _period_sales(db: Session, start_date: Optional[date], end_date: Optional[da
 
     revenue = _money(row.revenue)
     cogs = _money(_scalar(cogs_q))
+    cash = _money(row.cash)
+    upi = _money(row.upi)
+    refunded = _money(row.refunded)
+    total_collected = _money((cash + upi) - refunded)
 
     return {
         "revenue": revenue,
         "orders": _int(row.orders),
         "quantity_sold": _int(_scalar(qty_q)),
-        "cash_received": _money(row.cash),
-        "upi_received": _money(row.upi),
+        "cash_received": cash,
+        "upi_received": upi,
+        "refunded_amount": refunded,
+        "total_collected": total_collected,
+        "total_collected_amount": total_collected,
         "cogs": cogs,
     }
 
@@ -171,10 +179,12 @@ def _current_receivables(db: Session) -> dict:
     row = db.query(
         func.coalesce(func.sum(SaleDBModel.outstanding_amount), 0.0).label("outstanding"),
         func.coalesce(func.sum(SaleDBModel.refund_amount), 0.0).label("refund_pending"),
+        func.coalesce(func.sum(SaleDBModel.refunded_amount), 0.0).label("refund_completed"),
     ).one()
     return {
         "outstanding": _money(row.outstanding),
         "refund_pending": _money(row.refund_pending),
+        "refund_completed": _money(row.refund_completed),
     }
 
 
@@ -206,6 +216,9 @@ def build_report(
             "quantity_sold": sales["quantity_sold"],
             "cash_received": sales["cash_received"],
             "upi_received": sales["upi_received"],
+            "refunded_amount": sales["refunded_amount"],
+            "total_collected": sales["total_collected"],
+            "total_collected_amount": sales["total_collected_amount"],
         },
         "purchases": purchases,
         "rejections": rejections,

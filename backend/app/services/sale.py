@@ -101,6 +101,8 @@ def create_sale(tempSale: TempSale, db: Session):
         cash_amount = cash_amount,
         upi_amount = upi_amount,
         outstanding_amount = udhari_amount,
+        refund_amount = 0.0,
+        refunded_amount = 0.0,
     )
 
     sale_items = []
@@ -148,6 +150,7 @@ def create_sale(tempSale: TempSale, db: Session):
         "upi_amount": round(sale.upi_amount, 2),
         "outstanding_amount": round(sale.outstanding_amount, 2),
         "refund_amount": round(sale.refund_amount, 2) if sale.refund_amount is not None else 0.0,
+        "refunded_amount": round(sale.refunded_amount, 2) if sale.refunded_amount is not None else 0.0,
         "items": [
             {
                 "sale_item_id": si.sale_item_id,
@@ -210,6 +213,7 @@ def _serialize_sales(sales, db: Session):
             "upi_amount": round(sale.upi_amount, 2) if sale.upi_amount is not None else 0.0,
             "outstanding_amount": round(sale.outstanding_amount, 2) if sale.outstanding_amount is not None else 0.0,
             "refund_amount": round(sale.refund_amount, 2) if sale.refund_amount is not None else 0.0,
+            "refunded_amount": round(sale.refunded_amount, 2) if sale.refunded_amount is not None else 0.0,
             "items": serialized_items
         })
 
@@ -534,6 +538,10 @@ def return_product_service(sale_id: str, temp_return: TempReturn, db: Session):
             sale.refund_amount,
             2
         ),
+        "refunded_amount": round(
+            sale.refunded_amount,
+            2
+        ) if sale.refunded_amount is not None else 0.0,
         "items": updated_items
     }
 
@@ -557,6 +565,9 @@ def complete_refund_service(sale_id: str, db: Session):
             detail="No refund due for this sale"
         )
 
+    # Move pending refund_amount into refunded_amount
+    sale.refunded_amount = round((sale.refunded_amount or 0.0) + current_refund, 2)
+    # Set refund_amount to 0
     sale.refund_amount = 0.0
 
     try:
@@ -574,4 +585,5 @@ def complete_refund_service(sale_id: str, db: Session):
         "message": "Refund marked as completed",
         "sale_id": sale.sale_id,
         "refund_amount": round(sale.refund_amount, 2),
+        "refunded_amount": round(sale.refunded_amount, 2),
     }
