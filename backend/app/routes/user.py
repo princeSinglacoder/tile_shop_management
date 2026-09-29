@@ -54,6 +54,6 @@ def logout_user(response: Response, current_user: UserDBModel = Depends(get_curr
         key="access_token",
         httponly=True,
         secure=settings.IS_PRODUCTION,
-        samesite="lax",
+        samesite="none" if settings.IS_PRODUCTION else "lax",
     )
     return {"message": "Logged out successfully"}
