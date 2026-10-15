@@ -1,4 +1,4 @@
-# Pooja Tiles Hodal — Tile Shop Management & POS System
+# Retail Client — Tile Shop Management & POS System
 
 A complete retail enterprise management, point-of-sale (POS), inventory tracking, and financial analytics platform tailored specifically for tile, marble, and ceramic retail shops.
 
