@@ -90,6 +90,36 @@ const Products = (() => {
     if (banner) banner.classList.add("hidden");
   };
 
+  // ─── Role Visibility Helper ──────────────────────────────────────────────────
+  const applyRoleProductUI = () => {
+    const isStaff = Auth.isStaff();
+
+    const addBtn = $("openAddProductBtn");
+    if (addBtn) addBtn.style.display = isStaff ? "none" : "";
+
+    const invCard = $("cardStatInventoryValue");
+    if (invCard) invCard.style.display = isStaff ? "none" : "";
+
+    const thPrice = $("thProductPurchasePrice");
+    if (thPrice) thPrice.style.display = isStaff ? "none" : "";
+
+    const sortBySelect = $("sortBy");
+    if (sortBySelect) {
+      const priceAscOpt = sortBySelect.querySelector('option[value="price-asc"]');
+      const priceDescOpt = sortBySelect.querySelector('option[value="price-desc"]');
+      if (isStaff) {
+        if (priceAscOpt) priceAscOpt.style.display = "none";
+        if (priceDescOpt) priceDescOpt.style.display = "none";
+        if (sortBySelect.value === "price-asc" || sortBySelect.value === "price-desc") {
+          sortBySelect.value = "name-asc";
+        }
+      } else {
+        if (priceAscOpt) priceAscOpt.style.display = "";
+        if (priceDescOpt) priceDescOpt.style.display = "";
+      }
+    }
+  };
+
   // ─── Load Products (GET /product/all) ────────────────────────────────────────
   const loadProducts = async () => {
     hideApiBanner();
@@ -97,6 +127,13 @@ const Products = (() => {
     setConnectionStatus("loading");
 
     try {
+      await Auth.getUser();
+      if (Auth.isStaff()) {
+        window.location.replace("dashboard.html");
+        return;
+      }
+      applyRoleProductUI();
+
       const response = await fetch(
         `${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.PRODUCTS_ALL}`,
         {
@@ -138,6 +175,7 @@ const Products = (() => {
       showApiBanner(error.message);
     }
 
+    applyRoleProductUI();
     populateFilters();
     renderTable();
     updateStatsSummary();
@@ -168,10 +206,15 @@ const Products = (() => {
   };
 
   const getFilteredProducts = () => {
+    const isStaff = Auth.isStaff();
     const query  = (($("productSearch") || {}).value || "").trim().toLowerCase();
     const brand  = (($("filterBrand") || {}).value || "");
     const size   = (($("filterSize")  || {}).value || "");
-    const sortBy = (($("sortBy")      || {}).value || "name-asc");
+    let sortBy   = (($("sortBy")      || {}).value || "name-asc");
+
+    if (isStaff && (sortBy === "price-asc" || sortBy === "price-desc")) {
+      sortBy = "name-asc";
+    }
 
     let result = productsList.filter((item) => {
       const name  = (item.product_name  || "").toLowerCase();
@@ -195,8 +238,8 @@ const Products = (() => {
 
       switch (sortBy) {
         case "name-desc":   return nameB.localeCompare(nameA);
-        case "price-asc":   return priceA - priceB;
-        case "price-desc":  return priceB - priceA;
+        case "price-asc":   return isStaff ? 0 : priceA - priceB;
+        case "price-desc":  return isStaff ? 0 : priceB - priceA;
         case "stock-asc":   return stockA - stockB;
         case "stock-desc":  return stockB - stockA;
         default:            return nameA.localeCompare(nameB); // name-asc
@@ -234,6 +277,7 @@ const Products = (() => {
   };
 
   const renderProductRow = (product) => {
+    const isStaff = Auth.isStaff();
     const stock = parseInt(product.product_stock_quantity, 10) || 0;
     const name  = UI.escapeHTML(product.product_name  || "—");
     const brand = UI.escapeHTML(product.product_brand || "—");
@@ -270,9 +314,11 @@ const Products = (() => {
             ${size}
           </span>
         </td>
+        ${!isStaff ? `
         <td>
           <span class="price-tag">${UI.formatCurrency(product.product_purchase_price)}</span>
         </td>
+        ` : ""}
         <td>
           <div class="stock-cell">
             <span class="stock-dot ${stockDot}"></span>
@@ -281,6 +327,7 @@ const Products = (() => {
         </td>
         <td>
           <div class="table-actions">
+            ${!isStaff ? `
             <button
               type="button"
               class="btn btn-icon edit"
@@ -294,6 +341,7 @@ const Products = (() => {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
+            ` : ""}
             <button
               type="button"
               class="btn btn-icon reject"
@@ -308,6 +356,7 @@ const Products = (() => {
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </button>
+            ${!isStaff ? `
             <button
               type="button"
               class="btn btn-icon delete"
@@ -322,6 +371,7 @@ const Products = (() => {
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
             </button>
+            ` : ""}
           </div>
         </td>
       </tr>
@@ -330,7 +380,7 @@ const Products = (() => {
 
   const renderEmptyFiltered = () => `
     <tr>
-      <td colspan="6">
+      <td colspan="${Auth.isStaff() ? 5 : 6}">
         <div class="empty-state">
           <div class="empty-icon-wrapper">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -346,9 +396,11 @@ const Products = (() => {
     </tr>
   `;
 
-  const renderEmptyAll = () => `
+  const renderEmptyAll = () => {
+    const isStaff = Auth.isStaff();
+    return `
     <tr>
-      <td colspan="6">
+      <td colspan="${isStaff ? 5 : 6}">
         <div class="empty-state">
           <div class="empty-icon-wrapper">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -359,7 +411,8 @@ const Products = (() => {
             </svg>
           </div>
           <h4 class="empty-title">No Tiles in Catalog</h4>
-          <p class="empty-description">Your inventory is empty. Add your first tile product to get started.</p>
+          <p class="empty-description">Your inventory is empty.${!isStaff ? " Add your first tile product to get started." : ""}</p>
+          ${!isStaff ? `
           <button type="button" class="btn btn-primary" id="emptyAddBtn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -367,10 +420,12 @@ const Products = (() => {
             </svg>
             Add New Tile
           </button>
+          ` : ""}
         </div>
       </td>
     </tr>
   `;
+  };
 
   // ─── Skeleton Loading State ───────────────────────────────────────────────────
   const showLoadingState = () => {
@@ -380,12 +435,13 @@ const Products = (() => {
 
     if (countEl) countEl.textContent = "Loading...";
 
+    const isStaff = Auth.isStaff();
     tbody.innerHTML = Array.from({ length: 5 }).map(() => `
       <tr class="skeleton-row">
         <td><div class="skeleton" style="height:18px;width:65%;margin-bottom:5px;"></div></td>
         <td><div class="skeleton" style="height:22px;width:80px;border-radius:9999px;"></div></td>
         <td><div class="skeleton" style="height:22px;width:100px;border-radius:6px;"></div></td>
-        <td><div class="skeleton" style="height:18px;width:72px;"></div></td>
+        ${!isStaff ? `<td><div class="skeleton" style="height:18px;width:72px;"></div></td>` : ""}
         <td><div class="skeleton" style="height:22px;width:90px;border-radius:9999px;"></div></td>
         <td><div class="skeleton" style="height:32px;width:72px;margin-left:auto;border-radius:8px;"></div></td>
       </tr>
@@ -394,10 +450,12 @@ const Products = (() => {
 
   // ─── Stats Summary ────────────────────────────────────────────────────────────
   const updateStatsSummary = () => {
+    const isStaff   = Auth.isStaff();
     const totalEl   = $("statTotalProducts");
     const brandsEl  = $("statTotalBrands");
     const lowStEl   = $("statLowStock");
     const valEl     = $("statInventoryValue");
+    const valCard   = $("cardStatInventoryValue");
 
     const total       = productsList.length;
     const uniqueBrands = new Set(productsList.map((p) => (p.product_brand || "").toLowerCase().trim())).size;
@@ -406,20 +464,30 @@ const Products = (() => {
       const q = parseInt(p.product_stock_quantity, 10) || 0;
       return q > 0 && q <= 15;
     }).length;
-    const totalValue = productsList.reduce((acc, p) => {
-      const price = parseFloat(p.product_purchase_price) || 0;
-      const stock = parseInt(p.product_stock_quantity, 10) || 0;
-      return acc + price * stock;
-    }, 0);
 
     if (totalEl)  totalEl.textContent  = total;
     if (brandsEl) brandsEl.textContent = uniqueBrands;
     if (lowStEl)  lowStEl.textContent  = lowStockCount;
-    if (valEl)    valEl.textContent    = UI.formatCurrency(totalValue);
+
+    if (isStaff) {
+      if (valCard) valCard.style.display = "none";
+    } else {
+      if (valCard) valCard.style.display = "";
+      const totalValue = productsList.reduce((acc, p) => {
+        const price = parseFloat(p.product_purchase_price) || 0;
+        const stock = parseInt(p.product_stock_quantity, 10) || 0;
+        return acc + price * stock;
+      }, 0);
+      if (valEl) valEl.textContent = UI.formatCurrency(totalValue);
+    }
   };
 
   // ─── Add Product ─────────────────────────────────────────────────────────────
   const openAddModal = () => {
+    if (Auth.isStaff()) {
+      UI.showToast("Unauthorized", "Only administrators can add products.", "error");
+      return;
+    }
     const form = $("addProductForm");
     if (form) form.reset();
 
@@ -533,6 +601,10 @@ const Products = (() => {
 
   // ─── Edit Product ─────────────────────────────────────────────────────────────
   const openEditModal = (productId) => {
+    if (Auth.isStaff()) {
+      UI.showToast("Unauthorized", "Only administrators can edit products.", "error");
+      return;
+    }
     const product = productsList.find((p) => p.product_id === productId);
     if (!product) {
       UI.showToast("Error", "Product not found in local state.", "error");
@@ -859,7 +931,7 @@ const Products = (() => {
       }
 
       if (response.status === 403) {
-        showFormServerError("rejectServerError", result.detail || "Only admins can record rejections.");
+        showFormServerError("rejectServerError", result.detail || "You do not have permission to record rejections.");
         return;
       }
 
@@ -899,6 +971,10 @@ const Products = (() => {
 
   // ─── Delete Product ───────────────────────────────────────────────────────────
   const confirmDelete = (productId, productName) => {
+    if (Auth.isStaff()) {
+      UI.showToast("Unauthorized", "Only administrators can delete products.", "error");
+      return;
+    }
     const displayName = productName || "this tile";
 
     UI.showConfirm({
@@ -1042,7 +1118,12 @@ const Products = (() => {
   };
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await Auth.getUser();
+    if (Auth.isStaff()) {
+      window.location.replace("dashboard.html");
+      return;
+    }
     setupEventListeners();
     loadProducts();
   });

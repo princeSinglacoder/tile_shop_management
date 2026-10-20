@@ -20,8 +20,9 @@ def create_expense(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can create expenses")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can create expenses")
 
     return create_expense_service(temp_expense, db)
 
@@ -31,8 +32,9 @@ def get_expenses(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can view expenses")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can view expenses")
 
     return get_all_expenses(db)
 

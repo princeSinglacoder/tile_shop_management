@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.schemas.product import TempProduct, ProductUpdate
+from app.staff_response.product import StaffProductResponse
 from app.databases.database import get_db
 from app.utils.jwt import get_current_user
 from app.services.product import add_product, update_product, delete_product as delete_product_service
@@ -24,14 +25,19 @@ def create_product(tempProduct: TempProduct, current_user: UserDBModel = Depends
 
 @router.get("/all")
 def get_all_products(current_user: UserDBModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    # check current user is admin or not
-    if current_user.user_role != "admin":
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
         raise HTTPException(
             status_code=403,
             detail="You are not authorized to view all products"
         )
 
-    return db.query(ProductDBModel).all()
+    products = db.query(ProductDBModel).all()
+
+    if role == "staff":
+        return [StaffProductResponse.model_validate(p) for p in products]
+
+    return products
 
 @router.put("/edit/{product_id}")
 def edit_product(product_id: str, product_update: ProductUpdate, current_user: UserDBModel = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -42,16 +42,18 @@ def login_user(loginUser: UserLogin, response: Response, db: Session = Depends(g
 
 @router.get("/me")
 def get_me(current_user: UserDBModel = Depends(get_current_user)):
-    return {"message": "authenticated", "user_id": current_user.user_id}
+    return {
+        "message": "authenticated",
+        "user_id": current_user.user_id,
+        "user_role": current_user.user_role,
+    }
 
 
 @router.post("/logout")
 def logout_user(response: Response, current_user: UserDBModel = Depends(get_current_user)):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can logout via this endpoint")
-
     response.delete_cookie(
         key="access_token",
+        path="/",
         httponly=True,
         secure=settings.IS_PRODUCTION,
         samesite="none" if settings.IS_PRODUCTION else "lax",
