@@ -1126,3 +1126,21 @@
 .toast.toast-info .toast-icon {
   color: var(--info);
 }
+
+/* ─── Role-Based UI Constraints ─────────────────────────────────────────── */
+body.role-staff a[href*="products.html"],
+body.role-staff a[href*="purchases.html"],
+body.role-staff a[href*="reports.html"] {
+  display: none !important;
+}
+
+body.role-staff .date-range-filter {
+  display: none !important;
+}
+
+body:not(.role-admin) .summary-cards-grid,
+body.role-staff .summary-cards-grid {
+  display: none !important;
+}
+
+

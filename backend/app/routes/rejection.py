@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.schemas.rejection import TempRejection
+from app.staff_response.rejection import StaffRejectionResponse, StaffCreateRejectionResponse
 from app.databases.database import get_db
 from app.utils.jwt import get_current_user
 from app.utils.date_range import resolve_filter_date_range
@@ -20,10 +21,16 @@ def create_rejection(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can record rejections")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can record rejections")
 
-    return create_rejection_service(temp_rejection, db)
+    result = create_rejection_service(temp_rejection, db)
+
+    if role == "staff":
+        return StaffCreateRejectionResponse.model_validate(result)
+
+    return result
 
 
 @router.get("/all")
@@ -31,10 +38,16 @@ def get_rejections(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can view rejections")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can view rejections")
 
-    return get_all_rejections(db)
+    rejections = get_all_rejections(db)
+
+    if role == "staff":
+        return [StaffRejectionResponse.model_validate(r) for r in rejections]
+
+    return rejections
 
 
 @router.get("/filter")

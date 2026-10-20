@@ -241,7 +241,13 @@ const Reports = (() => {
     await loadSummary();
   };
 
-  const init = () => {
+  const init = async () => {
+    await Auth.getUser();
+    if (Auth.isStaff()) {
+      window.location.replace("dashboard.html");
+      return;
+    }
+
     $("applyReportsDateFilterBtn")?.addEventListener("click", applyDateFilter);
     $("clearReportsDateFilterBtn")?.addEventListener("click", clearDateFilter);
     $("retryLoadBtn")?.addEventListener("click", () => {

@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.schemas.sales import TempSale, TempPayment, TempReturn
+from app.staff_response.sale import StaffSaleResponse, StaffReturnResponse, StaffCreateSaleResponse
 from app.databases.database import get_db
 from app.utils.jwt import get_current_user
 from app.utils.date_range import resolve_filter_date_range
@@ -22,20 +23,32 @@ def create_sale(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can create sales")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can create sales")
 
-    return create_sale_service(tempSale, db)
+    result = create_sale_service(tempSale, db)
+
+    if role == "staff":
+        return StaffCreateSaleResponse.model_validate(result)
+
+    return result
 
 @router.get("/all")
 def get_sales(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can view sales")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can view sales")
 
-    return get_all_sales(db)
+    sales = get_all_sales(db)
+
+    if role == "staff":
+        return [StaffSaleResponse.model_validate(s) for s in sales]
+
+    return sales
 
 
 @router.get("/filter")
@@ -57,8 +70,9 @@ def get_outstanding(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can view sales")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can view outstanding sales")
 
     return get_outstanding_sales(db)
 
@@ -70,8 +84,9 @@ def make_payment(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can make payments")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can make payments")
 
     return make_payment_service(sale_id, temp_payment, db)
 
@@ -83,10 +98,16 @@ def return_product(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can return product")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can return product")
 
-    return return_product_service(sale_id, temp_return, db)
+    result = return_product_service(sale_id, temp_return, db)
+
+    if role == "staff":
+        return StaffReturnResponse.model_validate(result)
+
+    return result
 
 
 @router.post("/{sale_id}/refund-complete")
@@ -95,7 +116,8 @@ def complete_refund(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.user_role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can complete refunds")
+    role = (current_user.user_role or "").strip().lower()
+    if role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="Only admins and staff can complete refunds")
 
     return complete_refund_service(sale_id, db)

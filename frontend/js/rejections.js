@@ -11,6 +11,7 @@
 
 const Rejections = (() => {
   let rejectionsList = [];
+  let allRejectionsList = [];
   let productsList = [];
   let activeStartDate = null;
   let activeEndDate = null;
@@ -138,7 +139,7 @@ const Rejections = (() => {
 
       if (response.status === 403) {
         rejectionsList = [];
-        UI.showToast("Forbidden", "Only admins can view rejections.", "error");
+        UI.showToast("Forbidden", "You do not have permission to view rejections.", "error");
         renderTable();
         updateStats();
         return;
@@ -151,7 +152,11 @@ const Rejections = (() => {
       }
 
       const data = await response.json();
-      rejectionsList = Array.isArray(data) ? data : [];
+      const arr = Array.isArray(data) ? data : [];
+      if (!isDateFilterActive()) {
+        allRejectionsList = arr;
+      }
+      rejectionsList = arr;
     } catch (err) {
       console.error("[Rejections] fetchRejections failed:", err);
       rejectionsList = [];
@@ -167,7 +172,7 @@ const Rejections = (() => {
     await fetchRejectionsFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.REJECTIONS_ALL}`);
   };
 
-  /** Apply Filter: GET /rejections/filter only */
+  /** Apply Filter: GET /rejections/filter for Admin, local for Staff */
   const applyDateFilter = async () => {
     const start = ($("rejectionsStartDate")?.value || "").trim() || null;
     const end = ($("rejectionsEndDate")?.value || "").trim() || null;
@@ -183,7 +188,17 @@ const Rejections = (() => {
 
     activeStartDate = start;
     activeEndDate = end;
-    await fetchRejectionsFromUrl(buildFilterUrl(start, end));
+
+    if (Auth.isAdmin()) {
+      await fetchRejectionsFromUrl(buildFilterUrl(start, end));
+    } else {
+      if (allRejectionsList.length === 0) {
+        await loadRejections();
+      }
+      rejectionsList = allRejectionsList.filter((r) => isDateInActiveFilter(r.rejection_date));
+      renderTable();
+      updateStats();
+    }
   };
 
   const clearDateFilter = async () => {
@@ -193,14 +208,26 @@ const Rejections = (() => {
     if (endInput) endInput.value = "";
     activeStartDate = null;
     activeEndDate = null;
-    await loadRejections();
+
+    if (Auth.isAdmin()) {
+      await loadRejections();
+    } else {
+      rejectionsList = [...allRejectionsList];
+      renderTable();
+      updateStats();
+    }
   };
 
   const refreshRejections = async () => {
-    if (isDateFilterActive()) {
+    if (Auth.isAdmin() && isDateFilterActive()) {
       await fetchRejectionsFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
     } else {
       await loadRejections();
+      if (Auth.isStaff() && isDateFilterActive()) {
+        rejectionsList = allRejectionsList.filter((r) => isDateInActiveFilter(r.rejection_date));
+        renderTable();
+        updateStats();
+      }
     }
   };
 
@@ -209,22 +236,29 @@ const Rejections = (() => {
     const countEl = $("rejectionsCount");
     if (countEl) countEl.textContent = "Loading...";
     if (!tbody) return;
+
+    const isStaff = Auth.isStaff();
     tbody.innerHTML = Array.from({ length: 4 }).map(() => `
       <tr class="skeleton-row">
         <td><div class="skeleton" style="height:18px;width:90px;"></div></td>
         <td><div class="skeleton" style="height:18px;width:55%;"></div></td>
         <td><div class="skeleton" style="height:18px;width:40px;"></div></td>
         <td><div class="skeleton" style="height:22px;width:80px;border-radius:9999px;"></div></td>
-        <td><div class="skeleton" style="height:18px;width:70px;"></div></td>
+        ${!isStaff ? `<td><div class="skeleton" style="height:18px;width:70px;"></div></td>` : ""}
         <td><div class="skeleton" style="height:18px;width:80px;margin-left:auto;"></div></td>
       </tr>
     `).join("");
   };
 
   const updateStats = () => {
-    const total = rejectionsList.length;
-    const boxes = rejectionsList.reduce((sum, r) => sum + (parseInt(r.quantity, 10) || 0), 0);
-    const loss = rejectionsList.reduce((sum, r) => sum + (parseFloat(r.rejection_loss) || 0), 0);
+    const isStaff = Auth.isStaff();
+    const listForStats = (isStaff && isDateFilterActive())
+      ? rejectionsList.filter((r) => isDateInActiveFilter(r.rejection_date))
+      : rejectionsList;
+
+    const total = listForStats.length;
+    const boxes = listForStats.reduce((sum, r) => sum + (parseInt(r.quantity, 10) || 0), 0);
+    const loss = listForStats.reduce((sum, r) => sum + (parseFloat(r.rejection_loss) || 0), 0);
 
     const totalEl = $("statTotalRejections");
     const boxesEl = $("statTotalBoxes");
@@ -243,10 +277,14 @@ const Rejections = (() => {
     const tbody = $("rejectionsTableBody");
     if (!tbody) return;
 
+    const isStaff = Auth.isStaff();
+    const thCost = $("thRejectionCostPrice");
+    if (thCost) thCost.style.display = isStaff ? "none" : "";
+
     if (rejectionsList.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6">
+          <td colspan="${isStaff ? 5 : 6}">
             <div class="empty-state">
               <div class="empty-icon-wrapper">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -278,7 +316,7 @@ const Rejections = (() => {
         <td>
           <span class="badge badge-neutral">${UI.escapeHTML(r.reason || "—")}</span>
         </td>
-        <td>${UI.formatCurrency(r.cost_price)}</td>
+        ${!isStaff ? `<td>${UI.formatCurrency(r.cost_price)}</td>` : ""}
         <td style="text-align: right;">
           <span class="rejection-loss-cell">${UI.formatCurrency(r.rejection_loss)}</span>
         </td>
@@ -409,14 +447,7 @@ const Rejections = (() => {
     }
 
     const rejectionDate = new Date().toISOString().split("T")[0];
-
-    if (!isDateInActiveFilter(rejectionDate)) {
-      renderTable();
-      updateStats();
-      return;
-    }
-
-    rejectionsList.unshift({
+    const newRecord = {
       rejection_id: result.rejection_id,
       product_id: result.product_id,
       product_name: product ? product.product_name : "Unknown",
@@ -425,8 +456,17 @@ const Rejections = (() => {
       reason: reason || "",
       cost_price: result.cost_price,
       rejection_loss: result.rejection_loss,
-    });
+    };
 
+    allRejectionsList.unshift(newRecord);
+
+    if (!isDateInActiveFilter(rejectionDate)) {
+      renderTable();
+      updateStats();
+      return;
+    }
+
+    rejectionsList.unshift(newRecord);
     renderTable();
     updateStats();
   };
@@ -475,7 +515,7 @@ const Rejections = (() => {
       }
 
       if (response.status === 403) {
-        showFormServerError("rejectServerError", result.detail || "Only admins can record rejections.");
+        showFormServerError("rejectServerError", result.detail || "You do not have permission to record rejections.");
         return;
       }
 
@@ -521,7 +561,8 @@ const Rejections = (() => {
     $("clearRejectionsDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await Auth.getUser();
     setupEventListeners();
     loadRejections();
   });

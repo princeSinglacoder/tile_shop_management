@@ -790,6 +790,11 @@ const Purchases = (() => {
 
   // ─── Init ────────────────────────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", async () => {
+    await Auth.getUser();
+    if (Auth.isStaff()) {
+      window.location.replace("dashboard.html");
+      return;
+    }
     setupEventListeners();
     // Only load purchases on page load/refresh.
     // product/all is fetched when Create Purchase is opened.

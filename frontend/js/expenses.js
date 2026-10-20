@@ -10,6 +10,7 @@
 
 const Expenses = (() => {
   let expensesList = [];
+  let allExpensesList = [];
   let activeStartDate = null;
   let activeEndDate = null;
 
@@ -77,8 +78,9 @@ const Expenses = (() => {
   const isDateInActiveFilter = (dateStr) => {
     if (!isDateFilterActive()) return true;
     if (!dateStr) return false;
-    if (activeStartDate && dateStr < activeStartDate) return false;
-    if (activeEndDate && dateStr > activeEndDate) return false;
+    const d = (dateStr || "").substring(0, 10);
+    if (activeStartDate && d < activeStartDate) return false;
+    if (activeEndDate && d > activeEndDate) return false;
     return true;
   };
 
@@ -108,7 +110,7 @@ const Expenses = (() => {
 
       if (response.status === 403) {
         expensesList = [];
-        UI.showToast("Forbidden", "Only admins can view expenses.", "error");
+        UI.showToast("Forbidden", "You do not have permission to view this data.", "error");
         renderTable();
         updateStats();
         return;
@@ -122,6 +124,9 @@ const Expenses = (() => {
 
       const data = await response.json();
       expensesList = Array.isArray(data) ? data : [];
+      if (requestUrl.includes(CONFIG.ENDPOINTS.EXPENSES_ALL)) {
+        allExpensesList = Array.isArray(data) ? [...data] : [];
+      }
     } catch (err) {
       console.error("[Expenses] fetchExpenses failed:", err);
       expensesList = [];
@@ -137,7 +142,7 @@ const Expenses = (() => {
     await fetchExpensesFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.EXPENSES_ALL}`);
   };
 
-  /** Apply Filter: GET /expenses/filter only */
+  /** Apply Filter: GET /expenses/filter for Admin; local filter on complete allExpensesList for Staff */
   const applyDateFilter = async () => {
     const start = ($("expensesStartDate")?.value || "").trim() || null;
     const end = ($("expensesEndDate")?.value || "").trim() || null;
@@ -153,6 +158,22 @@ const Expenses = (() => {
 
     activeStartDate = start;
     activeEndDate = end;
+
+    if (Auth.isStaff()) {
+      // Staff does not have access to /expenses/filter (Admin-only).
+      // Filter locally from the complete loaded dataset.
+      expensesList = allExpensesList.filter((e) => {
+        const d = (e.expense_date || "").substring(0, 10);
+        if (!d) return false;
+        if (start && d < start) return false;
+        if (end && d > end) return false;
+        return true;
+      });
+      renderTable();
+      updateStats();
+      return;
+    }
+
     await fetchExpensesFromUrl(buildFilterUrl(start, end));
   };
 
@@ -163,12 +184,25 @@ const Expenses = (() => {
     if (endInput) endInput.value = "";
     activeStartDate = null;
     activeEndDate = null;
+
+    if (Auth.isStaff() && allExpensesList.length > 0) {
+      expensesList = [...allExpensesList];
+      renderTable();
+      updateStats();
+      return;
+    }
+
     await loadExpenses();
   };
 
   const refreshExpenses = async () => {
     if (isDateFilterActive()) {
-      await fetchExpensesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+      if (Auth.isStaff()) {
+        await loadExpenses();
+        applyDateFilter();
+      } else {
+        await fetchExpensesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
+      }
     } else {
       await loadExpenses();
     }
@@ -350,18 +384,22 @@ const Expenses = (() => {
   const applyCreatedExpense = (result) => {
     if (!result || !result.expense_id) return;
 
-    if (!isDateInActiveFilter(result.expense_date)) {
-      updateStats();
-      return;
-    }
-
-    expensesList.unshift({
+    const newItem = {
       expense_id: result.expense_id,
       expense_date: result.expense_date,
       category: result.category,
       amount: result.amount,
       description: result.description || "",
-    });
+    };
+
+    allExpensesList.unshift(newItem);
+
+    if (!isDateInActiveFilter(result.expense_date)) {
+      updateStats();
+      return;
+    }
+
+    expensesList.unshift(newItem);
 
     renderTable();
     updateStats();
@@ -408,7 +446,7 @@ const Expenses = (() => {
       }
 
       if (response.status === 403) {
-        showFormServerError("expenseServerError", result.detail || "Only admins can create expenses.");
+        showFormServerError("expenseServerError", result.detail || "You do not have permission to create expenses.");
         return;
       }
 
@@ -443,7 +481,8 @@ const Expenses = (() => {
     $("clearExpensesDateFilterBtn")?.addEventListener("click", clearDateFilter);
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await Auth.getUser();
     setupEventListeners();
     loadExpenses();
   });

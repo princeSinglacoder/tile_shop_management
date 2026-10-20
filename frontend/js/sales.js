@@ -134,7 +134,7 @@ const Sales = (() => {
       }
 
       if (response.status === 403) {
-        UI.showToast("Access Denied", "Only administrators can view sales records.", "error");
+        UI.showToast("Access Denied", "You do not have permission to view sales records.", "error");
         salesList = [];
         filteredSalesList = [];
         renderSaleHistory();
@@ -169,7 +169,7 @@ const Sales = (() => {
     await fetchSalesFromUrl(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SALES_ALL}`);
   };
 
-  /** Apply Filter: GET /sales/filter only — never calls /all first */
+  /** Apply Filter: GET /sales/filter for Admin, client-side for Staff */
   const applyDateFilter = async () => {
     const start = ($("salesStartDate")?.value || "").trim() || null;
     const end = ($("salesEndDate")?.value || "").trim() || null;
@@ -185,10 +185,19 @@ const Sales = (() => {
 
     activeStartDate = start;
     activeEndDate = end;
-    await fetchSalesFromUrl(buildFilterUrl(start, end));
+
+    if (Auth.isAdmin()) {
+      await fetchSalesFromUrl(buildFilterUrl(start, end));
+    } else {
+      if (salesList.length === 0) {
+        await loadSales();
+      }
+      applySearchFilter();
+      updateStats();
+    }
   };
 
-  /** Clear Filter: reset inputs and GET /sales/all once */
+  /** Clear Filter: reset inputs and re-render */
   const clearDateFilter = async () => {
     const startInput = $("salesStartDate");
     const endInput = $("salesEndDate");
@@ -196,12 +205,17 @@ const Sales = (() => {
     if (endInput) endInput.value = "";
     activeStartDate = null;
     activeEndDate = null;
-    await loadSales();
+    if (Auth.isAdmin()) {
+      await loadSales();
+    } else {
+      applySearchFilter();
+      updateStats();
+    }
   };
 
-  /** Refresh keeps current view: /filter if filtered, otherwise /all */
+  /** Refresh keeps current view: /filter if Admin filtered, otherwise /all */
   const refreshSales = async () => {
-    if (isDateFilterActive()) {
+    if (Auth.isAdmin() && isDateFilterActive()) {
       await fetchSalesFromUrl(buildFilterUrl(activeStartDate, activeEndDate));
     } else {
       await loadSales();
@@ -214,11 +228,17 @@ const Sales = (() => {
   // ─── Filter & Search ────────────────────────────────────────────────────────
   const applySearchFilter = () => {
     const query = ($("salesSearchInput")?.value || "").trim().toLowerCase();
+    const isStaff = Auth.isStaff();
+
+    let baseList = salesList;
+    if (isStaff && isDateFilterActive()) {
+      baseList = baseList.filter((sale) => isDateInActiveFilter(sale.date));
+    }
 
     if (!query) {
-      filteredSalesList = [...salesList];
+      filteredSalesList = [...baseList];
     } else {
-      filteredSalesList = salesList.filter((sale) => {
+      filteredSalesList = baseList.filter((sale) => {
         const custMatch = (sale.customer_name || "").toLowerCase().includes(query);
         const phoneMatch = (sale.phone_number || "").toLowerCase().includes(query);
         const idMatch = (sale.sale_id || "").toLowerCase().includes(query);
@@ -438,9 +458,14 @@ const Sales = (() => {
     const totalRevenueEl = $("statTotalRevenue");
     const totalItemsEl = $("statTotalItemsSold");
 
-    const totalSales = salesList.length;
-    const totalRevenue = salesList.reduce((sum, s) => sum + (parseFloat(s.total_amount) || 0), 0);
-    const totalBoxesSold = salesList.reduce((sum, s) => {
+    const isStaff = Auth.isStaff();
+    const listForStats = (isStaff && isDateFilterActive())
+      ? salesList.filter((s) => isDateInActiveFilter(s.date))
+      : salesList;
+
+    const totalSales = listForStats.length;
+    const totalRevenue = listForStats.reduce((sum, s) => sum + (parseFloat(s.total_amount) || 0), 0);
+    const totalBoxesSold = listForStats.reduce((sum, s) => {
       if (!s.items) return sum;
       return sum + s.items.reduce((iSum, it) => iSum + (parseInt(it.quantity, 10) || 0), 0);
     }, 0);
@@ -526,7 +551,7 @@ const Sales = (() => {
         </select>
       </div>
       <div class="row-info" id="rowStock_${currentRow}">—</div>
-      <div class="row-info" id="rowAvgPP_${currentRow}">—</div>
+      <div class="row-info col-avg-pp" id="rowAvgPP_${currentRow}">—</div>
       <div>
         <input
           type="number"
@@ -756,9 +781,13 @@ const Sales = (() => {
       stockEl.innerHTML = `<span class="stock-info-badge ${badgeClass}">${text}</span>`;
     }
 
-    // Current Average Purchase Price
+    // Current Average Purchase Price (Admin only)
     if (avgPPEl) {
-      avgPPEl.innerHTML = `<span class="stock-info-badge" style="background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 700;">${UI.formatCurrency(avgPP)}</span>`;
+      if (Auth.isStaff()) {
+        avgPPEl.innerHTML = "";
+      } else {
+        avgPPEl.innerHTML = `<span class="stock-info-badge" style="background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main); font-weight: 700;">${UI.formatCurrency(avgPP)}</span>`;
+      }
     }
   };
 
@@ -1057,8 +1086,8 @@ const Sales = (() => {
       }
 
       if (response.status === 403) {
-        showFormServerError("saleServerError", "Permission denied. Only administrators can record sales.");
-        UI.showToast("Forbidden", "Only admins can record sales.", "error");
+        showFormServerError("saleServerError", result.detail || "You do not have permission to record sales.");
+        UI.showToast("Forbidden", result.detail || "You do not have permission to record sales.", "error");
         return;
       }
 
@@ -1282,7 +1311,7 @@ const Sales = (() => {
         return;
       }
       if (response.status === 403) {
-        showFormServerError("paymentServerError", "Permission denied. Only administrators can record payments.");
+        showFormServerError("paymentServerError", result.detail || "Permission denied. You do not have permission to record payments.");
         return;
       }
       if (response.status === 422) {
@@ -1488,7 +1517,7 @@ const Sales = (() => {
         return;
       }
       if (response.status === 403) {
-        showFormServerError("returnServerError", "Permission denied. Only administrators can process returns.");
+        showFormServerError("returnServerError", result.detail || "Permission denied. You do not have permission to process returns.");
         return;
       }
       if (response.status === 422) {
@@ -1643,6 +1672,7 @@ const Sales = (() => {
 
   // ─── Initialization ─────────────────────────────────────────────────────────
   const init = async () => {
+    await Auth.getUser();
     setupEventListeners();
     // Only load sales history on page load/refresh.
     // product/all is fetched when Create Sale is opened.
